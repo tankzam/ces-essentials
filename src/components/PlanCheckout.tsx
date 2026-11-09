@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check } from '@/components/Check';
 import { cheaperPackage, DISCOUNT_CLUB, type PublicCatalog, type Selection } from '@/lib/catalog-shared';
 import { money } from '@/lib/money';
@@ -32,6 +32,8 @@ export function PlanCheckout({
   const [order, setOrder] = useState<Order>(null);
   const [agreed, setAgreed] = useState(false);
   const [account, setAccount] = useState({ fullName: '', email: '', phone: '', password: '' });
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const fieldsRef = useRef<HTMLFieldSetElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,14 +82,38 @@ export function PlanCheckout({
     selection = { addons: pickedProducts.map((p) => p.id) };
   }
 
-  const accountOk =
-    !!signedInEmail ||
-    (account.fullName.trim().length > 1 && /\S+@\S+\.\S+/.test(account.email) && account.phone.trim().length >= 7 && account.password.length >= 8);
-  const canPay = !!selection && agreed && accountOk && !busy;
-  const payHint = !selection ? 'Choose a plan first' : !accountOk ? 'Fill in your details' : !agreed ? 'Check the box to continue' : 'Pay securely with card';
+  // Per your spec: the button unlocks once a plan is chosen and the box is checked.
+  // Account fields are checked when it's clicked, with a message on each field.
+  const canPay = !!selection && agreed && !busy;
+  const payHint = !selection ? 'Choose a plan first' : !agreed ? 'Check the box to continue' : 'Pay securely with card';
+
+  function checkAccount() {
+    // Read what is actually in the boxes (browser autofill doesn't always update the page's copy).
+    const box = fieldsRef.current;
+    const val = (n: string) => (box?.querySelector<HTMLInputElement>(`[name="${n}"]`)?.value ?? '');
+    const current = { fullName: val('fullName'), phone: val('phone'), email: val('email'), password: val('password') };
+    setAccount(current);
+    const errs: Record<string, string> = {};
+    if (current.fullName.trim().length < 2) errs.fullName = 'Enter your full name.';
+    if (current.phone.replace(/\D/g, '').length < 7) errs.phone = 'Enter your phone number.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(current.email.trim())) errs.email = 'Enter a complete email address.';
+    if (current.password.length < 8) errs.password = `Password needs at least 8 characters (you have ${current.password.length}).`;
+    setFieldErrors(errs);
+    return { ok: Object.keys(errs).length === 0, current };
+  }
 
   async function pay() {
     if (!canPay || !selection) return;
+    let acct = account;
+    if (!signedInEmail) {
+      const { ok, current } = checkAccount();
+      if (!ok) {
+        setError('Please fix the highlighted details above.');
+        fieldsRef.current?.scrollIntoView({ block: 'center' });
+        return;
+      }
+      acct = current;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -98,7 +124,7 @@ export function PlanCheckout({
           selection,
           agreed: true,
           policyVersion: policy.version,
-          account: signedInEmail ? undefined : account,
+          account: signedInEmail ? undefined : acct,
         }),
       });
       const body = await res.json();
@@ -110,7 +136,7 @@ export function PlanCheckout({
     }
   }
 
-  const field = 'min-h-12 w-full rounded-lg border border-[#C8C7BF] bg-white px-3 text-base';
+  const field = 'min-h-12 w-full rounded-lg border border-[#C8C7BF] bg-white px-3 text-base aria-[invalid=true]:border-2 aria-[invalid=true]:border-danger';
 
   return (
     <>
@@ -249,26 +275,30 @@ export function PlanCheckout({
               Signed in as <strong className="text-navy">{signedInEmail}</strong>
             </p>
           ) : (
-            <fieldset className="grid gap-4 sm:grid-cols-2">
+            <fieldset ref={fieldsRef} className="grid gap-4 sm:grid-cols-2">
               <legend className="mb-3 text-[15px] text-muted">
                 Create your account. Already a member? <a href="/login" className="font-semibold text-navy underline">Log in</a>.
               </legend>
               <label className="flex flex-col gap-1.5 text-sm font-semibold">
                 Full name
-                <input className={field} autoComplete="name" value={account.fullName} onChange={(e) => setAccount({ ...account, fullName: e.target.value })} />
+                <input className={field} autoComplete="name" name="fullName" aria-invalid={!!fieldErrors.fullName} value={account.fullName} onChange={(e) => { setAccount({ ...account, fullName: e.target.value }); if (fieldErrors.fullName) setFieldErrors({ ...fieldErrors, fullName: '' }); }} />
+                {fieldErrors.fullName && <span role="alert" className="font-semibold text-danger">{fieldErrors.fullName}</span>}
               </label>
               <label className="flex flex-col gap-1.5 text-sm font-semibold">
                 Phone
-                <input className={field} type="tel" autoComplete="tel" value={account.phone} onChange={(e) => setAccount({ ...account, phone: e.target.value })} />
+                <input className={field} type="tel" autoComplete="tel" name="phone" aria-invalid={!!fieldErrors.phone} value={account.phone} onChange={(e) => { setAccount({ ...account, phone: e.target.value }); if (fieldErrors.phone) setFieldErrors({ ...fieldErrors, phone: '' }); }} />
+                {fieldErrors.phone && <span role="alert" className="font-semibold text-danger">{fieldErrors.phone}</span>}
               </label>
               <label className="flex flex-col gap-1.5 text-sm font-semibold sm:col-span-2">
                 Email
-                <input className={field} type="email" autoComplete="email" value={account.email} onChange={(e) => setAccount({ ...account, email: e.target.value })} />
+                <input className={field} type="email" autoComplete="email" name="email" aria-invalid={!!fieldErrors.email} value={account.email} onChange={(e) => { setAccount({ ...account, email: e.target.value }); if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: '' }); }} />
+                {fieldErrors.email && <span role="alert" className="font-semibold text-danger">{fieldErrors.email}</span>}
                 <span className="font-medium text-[#7A4E05]">You’ll register every service with this email.</span>
               </label>
               <label className="flex flex-col gap-1.5 text-sm font-semibold sm:col-span-2">
                 Password (at least 8 characters)
-                <input className={field} type="password" autoComplete="new-password" value={account.password} onChange={(e) => setAccount({ ...account, password: e.target.value })} />
+                <input className={field} type="password" autoComplete="new-password" name="password" aria-invalid={!!fieldErrors.password} value={account.password} onChange={(e) => { setAccount({ ...account, password: e.target.value }); if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: '' }); }} />
+                {fieldErrors.password && <span role="alert" className="font-semibold text-danger">{fieldErrors.password}</span>}
               </label>
             </fieldset>
           )}
