@@ -344,7 +344,7 @@ export async function setupInfo(serviceId: string, memberId: string, opts: { ass
 
   if (provider?.app_store_url) info.links!.push({ href: provider.app_store_url, label: 'Download on the App Store' });
   if (provider?.play_store_url) info.links!.push({ href: provider.play_store_url, label: 'Get it on Google Play' });
-  if (provider?.website_url) info.links!.push({ href: provider.website_url, label: `Go to ${provider.name}` });
+  if (provider?.website_url) info.links!.push({ href: provider.website_url, label: serviceId === 'discount_club' ? 'Go to CES Discount Club' : `Go to ${provider.name}` });
   if (s.open_url_setting_key && settings[s.open_url_setting_key]) {
     info.links!.push({ href: settings[s.open_url_setting_key], label: serviceId === 'credit_vpn' ? 'Activate with provider' : `Open ${s.name}` });
   }
