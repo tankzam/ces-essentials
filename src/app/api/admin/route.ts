@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { z } from 'zod';
-import { adminOrNull, ensureAccount, logActivity, setPasswordLink } from '@/lib/accounts';
+import { addAdmin, adminOrNull, ensureAccount, logActivity, setPasswordLink } from '@/lib/accounts';
 import { admin } from '@/lib/supabase/admin';
 import { stripe } from '@/lib/stripe';
 import { env } from '@/lib/env';
@@ -24,6 +24,7 @@ const Body = z.discriminatedUnion('action', [
   z.object({ action: z.literal('deactivate'), profileId: z.string().uuid() }),
   z.object({ action: z.literal('activate'), profileId: z.string().uuid() }),
   z.object({ action: z.literal('threshold'), value: z.number().int().min(0).max(100000) }),
+  z.object({ action: z.literal('add_admin'), email: z.string().trim().toLowerCase().email(), fullName: z.string().trim().min(2).max(120) }),
   z.object({ action: z.literal('approve_request'), requestId: z.string().uuid() }),
   z.object({ action: z.literal('decline_request'), requestId: z.string().uuid() }),
 ]);
@@ -79,6 +80,12 @@ export async function POST(req: Request) {
       await resyncMember(b.profileId);
       await logActivity(me, `activated ${p.email}`, p.email);
       return NextResponse.json({ ok: true, message: `${p.email} is active again.` });
+    }
+
+    case 'add_admin': {
+      const r = await addAdmin(b.email, b.fullName);
+      await logActivity(me, `made ${b.email} an admin`, b.email, { newAccount: r.created });
+      return NextResponse.json({ ok: true, message: `${b.email} is an admin and got an email to set a password.` });
     }
 
     case 'threshold': {

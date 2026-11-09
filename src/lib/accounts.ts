@@ -123,3 +123,13 @@ export async function logActivity(adminViewer: Viewer, action: string, target?: 
     details: details ?? null,
   });
 }
+
+/** Gives someone admin access (creating a login if needed) and emails them a set-password link. */
+export async function addAdmin(email: string, fullName: string): Promise<{ id: string; created: boolean }> {
+  const { sendAdminInvite } = await import('@/lib/email');
+  const acct = await ensureAccount({ email, fullName });
+  await admin().from('profiles').update({ role: 'admin', updated_at: new Date().toISOString() }).eq('id', acct.id);
+  const link = await setPasswordLink(email.trim().toLowerCase());
+  await sendAdminInvite({ id: acct.id, email: email.trim().toLowerCase(), name: fullName }, link);
+  return acct;
+}

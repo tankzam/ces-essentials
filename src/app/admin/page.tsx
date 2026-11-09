@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { AdminAction } from '@/components/AdminAction';
 import { ManualActivate } from '@/components/ManualActivate';
+import { AddAdmin } from '@/components/AddAdmin';
 import { requireAdminPage } from '@/lib/accounts';
 import { admin } from '@/lib/supabase/admin';
 import { allProducts } from '@/lib/catalog';
@@ -130,6 +131,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
           {pageNo < pages && <Link className="underline" href={`/admin?q=${encodeURIComponent(q)}&page=${pageNo + 1}`}>Next →</Link>}
         </nav>
       )}
+      <AddAdmin />
       <p className="text-sm text-subtle">
         Deactivate shuts off access right away, stops future renewals, and keeps all payment, code, and policy records. Every action is saved in the Activity Log.
       </p>

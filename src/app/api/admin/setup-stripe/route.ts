@@ -3,6 +3,7 @@ import { timingSafeEqual } from 'crypto';
 import { admin } from '@/lib/supabase/admin';
 import { stripe } from '@/lib/stripe';
 import { env, STRIPE_SOURCE } from '@/lib/env';
+import { addAdmin } from '@/lib/accounts';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -35,6 +36,15 @@ function authorized(req: Request): boolean {
 
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  // ?addAdmin=1 with {email, fullName}: create the first admins (before anyone can sign in to Admin).
+  if (new URL(req.url).searchParams.get('addAdmin')) {
+    const b = (await req.json().catch(() => ({}))) as { email?: string; fullName?: string };
+    if (!b.email || !b.fullName) return NextResponse.json({ error: 'email and fullName required' }, { status: 400 });
+    const r = await addAdmin(b.email, b.fullName);
+    await admin().from('admin_activity').insert({ admin_email: 'system', action: `made ${b.email.toLowerCase()} an admin (requested by the owner)`, target: b.email.toLowerCase(), details: { newAccount: r.created } });
+    return NextResponse.json({ ok: true, created: r.created });
+  }
+
   const s = stripe();
   const db = admin();
   const out: Record<string, unknown> = {};

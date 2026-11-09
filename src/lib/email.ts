@@ -283,3 +283,18 @@ ${button(url, 'Open your private signup page')}
 <p style="margin-top:20px;font-size:14px;color:#5A5C6E">This link is private to your company. Please don't share it outside your team.</p>`),
   });
 }
+
+export async function sendAdminInvite(m: { id: string; email: string; name: string }, setPasswordUrl: string) {
+  await send({
+    key: `admin_invite:${m.id}:${Date.now()}`,
+    template: 'admin_invite',
+    to: m.email,
+    memberId: m.id,
+    subject: 'Your CES Essentials admin access',
+    html: layout(`<h1 style="margin:0 0 12px;font-size:22px">You're a CES Essentials admin</h1>
+<p>You now have access to the CES Essentials admin area: members, activation codes, orders and revenue, business requests, and the policy and activity logs.</p>
+<p>Create your password to sign in. Your login is ${esc(m.email)}.</p>
+${button(setPasswordUrl, 'Create your password')}
+<p style="margin-top:20px;font-size:14px;color:#5A5C6E">This link expires in 24 hours. If it does, use “Forgot password” on the login page. After you sign in, you'll go straight to the admin area.</p>`),
+  });
+}
