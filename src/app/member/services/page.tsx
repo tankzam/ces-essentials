@@ -103,11 +103,6 @@ export default async function Page() {
                   <p className="text-sm text-subtle">
                     Register with: <strong className="text-navy">{email}</strong>
                   </p>
-                  {info.extraHtml && service.id === 'discount_club' && (
-                    <p className="text-sm text-subtle">
-                      Need help? Email <a className="underline" href="mailto:customerservice@workingadvantage.com">customerservice@workingadvantage.com</a>.
-                    </p>
-                  )}
                   <div className="mt-auto flex flex-col gap-2">
                     {(info.links ?? []).map((l) => (
                       <a

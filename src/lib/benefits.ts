@@ -183,7 +183,7 @@ export function benefitServices(view: BenefitsView): Record<string, BenefitServi
           sec({ type: 'bullets', title: 'Start saving on', items: ['Electronics', 'Appliances', 'Apparel', 'Cars', 'Flowers', 'Fitness memberships', 'Gift cards', 'Groceries', 'Hotels', 'Movie tickets', 'Rental cars', 'Special events', 'Theme parks', 'And more'] }),
           start(
             ['Join with any plan. The Discount Club is included free.', 'Your member area shows how to sign up and your access code.', 'Create your account and start saving.'],
-            ['Go to WorkingAdvantage.com and click Become a Member.', 'Enter the company code shown on your Discount Club card in My Services.', 'Create your account with your CES Essentials account email. Help: customerservice@workingadvantage.com.']
+            ['Go to WorkingAdvantage.com and click Become a Member.', 'Enter the company code shown on your Discount Club card in My Services.', 'Create your account with your CES Essentials account email.']
           )
         ]
       }
