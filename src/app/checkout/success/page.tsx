@@ -3,11 +3,11 @@ import { PaymentWaiter } from '@/components/PaymentWaiter';
 
 export const metadata = { title: 'Setting up your membership — CES Essentials' };
 
-export default async function Page({ searchParams }: { searchParams: Promise<{ session_id?: string }> }) {
-  const { session_id } = await searchParams;
+export default async function Page({ searchParams }: { searchParams: Promise<{ session_id?: string; company?: string }> }) {
+  const { session_id, company } = await searchParams;
   return (
     <PublicPage title="Thank you!">
-      <PaymentWaiter sessionId={session_id ?? ''} />
+      <PaymentWaiter sessionId={session_id ?? ''} dest={company ? '/hr' : '/member/services'} />
     </PublicPage>
   );
 }

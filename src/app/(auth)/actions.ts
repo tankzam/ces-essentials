@@ -2,21 +2,22 @@
 
 import { redirect } from 'next/navigation';
 import { serverClient } from '@/lib/supabase/server';
+import { homeFor } from '@/lib/accounts';
 
 export type FormState = { error?: string; message?: string } | undefined;
 
-function safeNext(next: unknown): string {
-  return typeof next === 'string' && next.startsWith('/member') ? next : '/member/services';
+function safeNext(next: unknown): string | null {
+  return typeof next === 'string' && /^\/(member|hr|admin)(\/|$)/.test(next) ? next : null;
 }
 
 export async function login(_: FormState, form: FormData): Promise<FormState> {
   const supabase = await serverClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: String(form.get('email') ?? '').trim().toLowerCase(),
     password: String(form.get('password') ?? ''),
   });
   if (error) return { error: 'That email and password don’t match. Try again or reset your password.' };
-  redirect(safeNext(form.get('next')));
+  redirect(safeNext(form.get('next')) ?? (await homeFor(data.user.id)));
 }
 
 export async function logout() {
@@ -39,7 +40,7 @@ export async function setNewPassword(_: FormState, form: FormData): Promise<Form
   const password = String(form.get('password') ?? '');
   if (password.length < 8) return { error: 'Use at least 8 characters.' };
   const supabase = await serverClient();
-  const { error } = await supabase.auth.updateUser({ password });
-  if (error) return { error: 'That reset link has expired. Request a new one.' };
-  redirect('/member/services');
+  const { data, error } = await supabase.auth.updateUser({ password });
+  if (error) return { error: 'That link has expired. Request a new one.' };
+  redirect(await homeFor(data.user.id));
 }

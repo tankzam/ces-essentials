@@ -8,7 +8,7 @@ export const metadata = { title: 'Choose a new password — CES Essentials' };
 export default async function Page() {
   if (!(await currentUser())) redirect('/forgot-password');
   return (
-    <PublicPage title="Choose a new password">
+    <PublicPage title="Choose your password">
       <ResetForm />
     </PublicPage>
   );

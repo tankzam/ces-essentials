@@ -20,7 +20,7 @@ export async function middleware(request: NextRequest) {
   );
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user && request.nextUrl.pathname.startsWith('/member')) {
+  if (!user && /^\/(member|hr|admin)(\/|$)/.test(request.nextUrl.pathname)) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('next', request.nextUrl.pathname);
@@ -30,5 +30,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/stripe/webhook|api/cron|api/admin).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/stripe/webhook|api/cron|api/admin/setup-stripe).*)'],
 };

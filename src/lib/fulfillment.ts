@@ -14,10 +14,11 @@ export interface Member {
   email: string;
   full_name: string;
   stripe_customer_id: string | null;
+  access_disabled: boolean;
 }
 
 export async function getMember(id: string): Promise<Member | null> {
-  const { data } = await admin().from('profiles').select('id, email, full_name, stripe_customer_id').eq('id', id).maybeSingle();
+  const { data } = await admin().from('profiles').select('id, email, full_name, stripe_customer_id, access_disabled').eq('id', id).maybeSingle();
   return data;
 }
 
@@ -60,8 +61,9 @@ function periodOf(sub: Stripe.Subscription) {
 }
 
 /**
- * Mirrors a Stripe subscription into Supabase and recalculates the member's
- * entitlements. Safe to call any number of times for the same subscription.
+ * Mirrors a Stripe subscription into Supabase and recalculates entitlements —
+ * for the member (individual plan) or for every employee (company plan).
+ * Safe to call any number of times for the same subscription.
  *
  * Nothing is turned on unless (a) a checkout order for this subscription was
  * paid with the amount the server expected, and (b) each item's Stripe price
@@ -72,13 +74,13 @@ export async function syncSubscription(stripeSubscriptionId: string): Promise<vo
   if (sub.metadata?.source !== STRIPE_SOURCE) return;
 
   const db = admin();
-  const memberId = sub.metadata.member_id;
-  const member = memberId ? await getMember(memberId) : null;
-  if (!member) throw new Error(`No member for subscription ${sub.id}`);
+  const orgId = sub.metadata.organization_id || null;
+  const member = !orgId && sub.metadata.member_id ? await getMember(sub.metadata.member_id) : null;
+  if (!orgId && !member) throw new Error(`No member or company for subscription ${sub.id}`);
 
   const { data: existing } = await db
     .from('subscriptions')
-    .select('id, past_due_since, access_paused_at, pending_change_at')
+    .select('id, past_due_since, access_paused_at, pending_change_at, keep_product_ids, keep_until')
     .eq('stripe_subscription_id', sub.id)
     .maybeSingle();
 
@@ -90,9 +92,11 @@ export async function syncSubscription(stripeSubscriptionId: string): Promise<vo
   const access = accessFor(sub.status, pastDueSince);
   const period = periodOf(sub);
   const scheduleId = idOf(sub.schedule);
+  const keepActive = existing?.keep_until && Date.parse(existing.keep_until) > Date.now();
 
   const row = {
-    member_id: member.id,
+    member_id: member?.id ?? null,
+    organization_id: orgId,
     stripe_subscription_id: sub.id,
     stripe_schedule_id: scheduleId,
     status: sub.status,
@@ -108,6 +112,7 @@ export async function syncSubscription(stripeSubscriptionId: string): Promise<vo
     ...(!scheduleId || (existing?.pending_change_at && Date.parse(existing.pending_change_at) <= Date.now())
       ? { pending_product_ids: null, pending_change_at: null }
       : {}),
+    ...(keepActive ? {} : { keep_product_ids: null, keep_until: null }),
   };
   const { data: saved, error } = await db
     .from('subscriptions')
@@ -125,17 +130,19 @@ export async function syncSubscription(stripeSubscriptionId: string): Promise<vo
     const price = item.price as Stripe.Price;
     const product = byPrice.get(price.id);
     if (!product) return [];
+    const qty = item.quantity ?? 1;
     const ok =
       price.unit_amount === product.price_cents &&
       price.currency === product.currency &&
       price.recurring?.interval === 'month' &&
-      (item.quantity ?? 1) === 1;
+      (orgId ? product.kind === 'company_package' && qty >= 10 : product.kind !== 'company_package' && qty === 1);
     if (ok) verified.push(product);
     return [{
       subscription_id: subscriptionRowId,
       product_id: product.id,
       stripe_subscription_item_id: item.id,
       unit_amount_cents: price.unit_amount ?? 0,
+      quantity: qty,
       price_verified: ok,
     }];
   });
@@ -152,19 +159,69 @@ export async function syncSubscription(stripeSubscriptionId: string): Promise<vo
     .eq('status', 'paid');
   const approved = (paidOrders ?? 0) > 0;
 
-  const wanted = approved ? servicesFor(verified) : [];
-  await applyEntitlements(member, subscriptionRowId, wanted, access);
+  let granted = verified;
+  if (keepActive && existing?.keep_product_ids?.length) {
+    granted = [...verified, ...products.filter((p) => existing.keep_product_ids.includes(p.id))];
+  }
+  const wanted = approved ? servicesFor(granted) : [];
+  const scope: Scope = { subscriptionRowId, source: orgId ? 'organization' : 'subscription', organizationId: orgId };
 
-  if (access === 'paused' && !existing?.access_paused_at && pastDueSince) {
-    await sendAccessPaused(member, pastDueSince);
+  if (member) {
+    await applyEntitlements(member, scope, wanted, access);
+    if (access === 'paused' && !existing?.access_paused_at && pastDueSince) await sendAccessPaused(member, pastDueSince);
+    return;
+  }
+
+  // Company plan: every current employee gets the plan; removed ones lose it.
+  if (orgId) {
+    await db.from('organizations').update({ plan_product_id: verified[0]?.id ?? null }).eq('id', orgId);
+    const now = Date.now();
+    const { data: people } = await db
+      .from('organization_members')
+      .select('profile_id, status, remove_at')
+      .eq('organization_id', orgId)
+      .eq('role', 'employee');
+    for (const person of people ?? []) {
+      const p = await getMember(person.profile_id);
+      if (!p) continue;
+      const gone = person.status === 'removed' || (person.status === 'removing' && person.remove_at && Date.parse(person.remove_at) <= now);
+      if (gone && person.status !== 'removed') {
+        await db
+          .from('organization_members')
+          .update({ status: 'removed', removed_at: new Date().toISOString() })
+          .eq('organization_id', orgId)
+          .eq('profile_id', person.profile_id);
+      }
+      await applyEntitlements(p, scope, gone ? [] : wanted, access);
+    }
+    if (access === 'paused' && !existing?.access_paused_at && pastDueSince) {
+      const { data: org } = await db.from('organizations').select('hr_profile_id').eq('id', orgId).single();
+      const hr = org?.hr_profile_id ? await getMember(org.hr_profile_id) : null;
+      if (hr) await sendAccessPaused(hr, pastDueSince);
+    }
   }
 }
 
-async function applyEntitlements(member: Member, subscriptionRowId: string, wanted: string[], access: AccessStatus) {
+export interface Scope {
+  subscriptionRowId: string | null; // null for manual (admin) grants
+  source: 'subscription' | 'organization' | 'manual';
+  organizationId: string | null;
+}
+
+const sameScope = (e: { subscription_id: string | null; source: string }, s: Scope) =>
+  (e.subscription_id ?? null) === s.subscriptionRowId && e.source === s.source;
+
+/**
+ * Sets one member's entitlements for one source (a subscription, a company
+ * plan, or an admin grant). A service the member already gets from another
+ * active source is left alone.
+ */
+export async function applyEntitlements(member: Member, scope: Scope, wanted: string[], subAccess: AccessStatus) {
   const db = admin();
   const now = new Date();
+  const access: AccessStatus = member.access_disabled && subAccess !== 'ended' ? 'paused' : subAccess;
   const [{ data: current }, { data: services }] = await Promise.all([
-    db.from('entitlements').select('service_id, status, subscription_id').eq('member_id', member.id),
+    db.from('entitlements').select('service_id, status, subscription_id, source').eq('member_id', member.id),
     db.from('services').select('id, activation_delay_hours'),
   ]);
   const delay = new Map((services ?? []).map((s) => [s.id as string, s.activation_delay_hours as number]));
@@ -173,11 +230,14 @@ async function applyEntitlements(member: Member, subscriptionRowId: string, want
   const newlyOn: string[] = [];
   for (const serviceId of wanted) {
     const prev = currentMap.get(serviceId);
-    const startingFresh = !prev || prev.status === 'ended' || prev.subscription_id !== subscriptionRowId;
+    if (prev && !sameScope(prev, scope) && (prev.status === 'active' || prev.status === 'grace')) continue;
+    const startingFresh = !prev || prev.status === 'ended' || !sameScope(prev, scope);
     const update: Record<string, unknown> = {
       member_id: member.id,
       service_id: serviceId,
-      subscription_id: subscriptionRowId,
+      subscription_id: scope.subscriptionRowId,
+      source: scope.source,
+      organization_id: scope.organizationId,
       status: access,
       ends_at: access === 'ended' ? now.toISOString() : null,
       updated_at: now.toISOString(),
@@ -185,27 +245,65 @@ async function applyEntitlements(member: Member, subscriptionRowId: string, want
     if (startingFresh) {
       update.starts_at = now.toISOString();
       update.available_at = new Date(now.getTime() + (delay.get(serviceId) ?? 0) * 3600_000).toISOString();
-      if (hasAccess(access)) newlyOn.push(serviceId);
     }
+    if (hasAccess(access) && (startingFresh || prev?.status === 'paused')) newlyOn.push(serviceId);
     const { error } = await db.from('entitlements').upsert(update, { onConflict: 'member_id,service_id' });
     if (error) throw error;
   }
 
-  // Services this subscription no longer includes (downgrade took effect, or cancellation ended).
+  // Services this source no longer includes (downgrade, cancellation, removal).
   const dropped = (current ?? [])
-    .filter((e) => e.subscription_id === subscriptionRowId && e.status !== 'ended' && !wanted.includes(e.service_id as string))
+    .filter((e) => sameScope(e, scope) && e.status !== 'ended' && !wanted.includes(e.service_id as string))
     .map((e) => e.service_id as string);
   if (dropped.length) {
-    await db
+    let q = db
       .from('entitlements')
       .update({ status: 'ended', ends_at: now.toISOString(), updated_at: now.toISOString() })
       .eq('member_id', member.id)
-      .eq('subscription_id', subscriptionRowId)
+      .eq('source', scope.source)
       .in('service_id', dropped);
+    q = scope.subscriptionRowId ? q.eq('subscription_id', scope.subscriptionRowId) : q.is('subscription_id', null);
+    await q;
   }
 
   for (const serviceId of newlyOn) {
-    await fulfill(member, serviceId, subscriptionRowId);
+    await fulfill(member, serviceId, scope.subscriptionRowId ?? 'manual');
+  }
+}
+
+/** Re-applies a member's access after an admin activates or deactivates them. */
+export async function resyncMember(memberId: string) {
+  const db = admin();
+  const member = await getMember(memberId);
+  if (!member) return;
+  const { data: subs } = await db
+    .from('subscriptions')
+    .select('stripe_subscription_id')
+    .eq('member_id', memberId)
+    .not('status', 'in', '(canceled,incomplete_expired)');
+  for (const s of subs ?? []) await syncSubscription(s.stripe_subscription_id);
+  const { data: orgLinks } = await db
+    .from('organization_members')
+    .select('organization_id')
+    .eq('profile_id', memberId)
+    .eq('role', 'employee');
+  for (const o of orgLinks ?? []) {
+    const { data: orgSub } = await db
+      .from('subscriptions')
+      .select('stripe_subscription_id')
+      .eq('organization_id', o.organization_id)
+      .not('status', 'in', '(canceled,incomplete_expired)')
+      .maybeSingle();
+    if (orgSub) await syncSubscription(orgSub.stripe_subscription_id);
+  }
+  const { data: manual } = await db
+    .from('entitlements')
+    .select('service_id, status')
+    .eq('member_id', memberId)
+    .eq('source', 'manual')
+    .neq('status', 'ended');
+  if (manual?.length) {
+    await applyEntitlements(member, { subscriptionRowId: null, source: 'manual', organizationId: null }, manual.map((m) => m.service_id), 'active');
   }
 }
 
@@ -283,10 +381,10 @@ export async function assignCode(memberId: string, serviceId = 'credit_vpn'): Pr
 }
 
 /** Runs once when a service turns on: assigns any code and sends the setup email. */
-async function fulfill(member: Member, serviceId: string, subscriptionRowId: string) {
+async function fulfill(member: Member, serviceId: string, keySuffix: string) {
   const info = await setupInfo(serviceId, member.id, { assignCode: true });
   if (info.waitingForCode) return; // the daily job emails it once codes are uploaded
-  await sendServiceSetup(member, info, subscriptionRowId);
+  await sendServiceSetup(member, info, keySuffix);
 }
 
 /** Daily job: deliver codes to members who were waiting on an empty pool. */
@@ -303,6 +401,6 @@ export async function deliverWaitingCodes() {
     const member = await getMember(e.member_id);
     if (!member) continue;
     const info = await setupInfo('credit_vpn', member.id, { assignCode: true });
-    if (info.code) await sendServiceSetup(member, info, e.subscription_id);
+    if (info.code) await sendServiceSetup(member, info, e.subscription_id ?? 'manual');
   }
 }

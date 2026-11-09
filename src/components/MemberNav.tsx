@@ -8,12 +8,13 @@ const tabs = [
   { href: '/member/plan', label: 'My Plan' },
   { href: '/member/billing', label: 'Billing' },
   { href: '/member/account', label: 'Account' },
+  { href: '/member/benefits', label: 'Benefits Guide' },
 ];
 
 export function MemberNav({ greeting }: { greeting: string }) {
   const path = usePathname();
   return (
-    <nav aria-label="Member menu" className="flex flex-col gap-1.5 rounded-2xl border border-line bg-white p-3.5 lg:w-[250px] lg:shrink-0">
+    <nav aria-label="Member menu" className="print:hidden flex flex-col gap-1.5 rounded-2xl border border-line bg-white p-3.5 lg:w-[250px] lg:shrink-0">
       <p className="mx-2.5 mb-2 mt-1.5 text-[13px] font-semibold uppercase tracking-wider text-subtle">{greeting}</p>
       <div className="flex flex-wrap gap-1.5 lg:flex-col">
         {tabs.map((t) => {

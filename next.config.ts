@@ -1,7 +1,8 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Loaded at runtime on the server instead of bundled (optional deps inside).
+  serverExternalPackages: ['read-excel-file', 'unzipper'],
 };
 
 export default nextConfig;

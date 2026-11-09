@@ -15,7 +15,7 @@ export default async function MemberLayout({ children }: { children: React.React
 
   return (
     <div className="min-h-screen bg-cream">
-      <header className="bg-navy text-white">
+      <header className="bg-navy text-white print:hidden">
         <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
           <Logo />
           <div className="flex items-center gap-4 text-[15px]">

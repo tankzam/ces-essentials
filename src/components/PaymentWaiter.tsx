@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 /** Waits for the webhook to confirm payment, then opens My Services. */
-export function PaymentWaiter({ sessionId }: { sessionId: string }) {
+export function PaymentWaiter({ sessionId, dest = '/member/services' }: { sessionId: string; dest?: string }) {
   const [status, setStatus] = useState('pending');
 
   useEffect(() => {
@@ -16,7 +16,7 @@ export function PaymentWaiter({ sessionId }: { sessionId: string }) {
         const body = await res.json();
         setStatus(body.status);
         if (body.status === 'paid') {
-          window.location.href = '/member/services';
+          window.location.href = dest;
           return;
         }
         if (body.status === 'amount_mismatch' || body.status === 'signed_out') return;
@@ -26,7 +26,7 @@ export function PaymentWaiter({ sessionId }: { sessionId: string }) {
     };
     poll();
     return () => clearTimeout(timer);
-  }, [sessionId]);
+  }, [sessionId, dest]);
 
   if (status === 'amount_mismatch') {
     return <p className="text-lg">We received your payment but need to check one detail before turning on your services. Our team will contact you shortly.</p>;

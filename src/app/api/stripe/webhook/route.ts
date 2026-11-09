@@ -4,7 +4,7 @@ import { stripe, idOf, toDate } from '@/lib/stripe';
 import { env, STRIPE_SOURCE } from '@/lib/env';
 import { admin } from '@/lib/supabase/admin';
 import { getMember, syncSubscription } from '@/lib/fulfillment';
-import { sendPaymentFailed, sendReceipt, sendWelcome } from '@/lib/email';
+import { sendCompanyWelcome, sendPaymentFailed, sendReceipt, sendWelcome } from '@/lib/email';
 import { planLabel } from '@/lib/catalog';
 
 export const runtime = 'nodejs';
@@ -75,10 +75,10 @@ async function checkoutCompleted(session: Stripe.Checkout.Session) {
 
   // Verify the amount and the exact prices charged before turning anything on.
   const lineItems = await stripe().checkout.sessions.listLineItems(session.id, { limit: 100 });
-  const expected = (order.items as { stripe_price_id: string; price_cents: number }[])
-    .map((i) => `${i.stripe_price_id}:${i.price_cents}`)
+  const expected = (order.items as { stripe_price_id: string; price_cents: number; quantity?: number }[])
+    .map((i) => `${i.stripe_price_id}:${i.price_cents}:${i.quantity ?? 1}`)
     .sort();
-  const charged = lineItems.data.map((li) => `${li.price?.id}:${li.price?.unit_amount}`).sort();
+  const charged = lineItems.data.map((li) => `${li.price?.id}:${li.price?.unit_amount}:${li.quantity ?? 1}`).sort();
   const amountOk =
     session.amount_total === order.expected_total_cents &&
     session.currency === order.currency &&
@@ -101,10 +101,14 @@ async function checkoutCompleted(session: Stripe.Checkout.Session) {
   if (subscriptionId) await syncSubscription(subscriptionId);
 
   const member = await getMember(order.member_id);
-  if (member) {
-    const { data: products } = await db.from('products').select('id, name, kind').in('id', order.product_ids);
-    await sendWelcome({ id: member.id, email: member.email, name: member.full_name }, planLabel(products ?? []));
+  const { data: products } = await db.from('products').select('id, name, kind').in('id', order.product_ids);
+  if (order.organization_id) {
+    await db.from('organizations').update({ status: 'active' }).eq('id', order.organization_id);
+    await db.from('business_requests').update({ status: 'signed_up' }).eq('organization_id', order.organization_id);
+    if (member) await sendCompanyWelcome({ id: member.id, email: member.email, name: member.full_name }, products?.[0]?.name ?? 'Company plan', order.quantity);
+    return;
   }
+  if (member) await sendWelcome({ id: member.id, email: member.email, name: member.full_name }, planLabel(products ?? []));
 }
 
 async function checkoutExpired(session: Stripe.Checkout.Session) {
@@ -123,17 +127,25 @@ async function ownInvoice(invoice: Stripe.Invoice) {
   const meta = invoice.parent?.subscription_details?.metadata;
   let source = meta?.source;
   let memberId = meta?.member_id;
+  let orgId = meta?.organization_id;
   if (!source) {
     const sub = await stripe().subscriptions.retrieve(subId);
     source = sub.metadata?.source;
     memberId = sub.metadata?.member_id;
+    orgId = sub.metadata?.organization_id;
   }
-  if (source !== STRIPE_SOURCE || !memberId) return null;
+  if (source !== STRIPE_SOURCE) return null;
+  if (orgId) {
+    // Company bills go to the HR contact.
+    const { data: org } = await admin().from('organizations').select('hr_profile_id').eq('id', orgId).single();
+    memberId = org?.hr_profile_id ?? undefined;
+  }
+  if (!memberId) return null;
   const member = await getMember(memberId);
-  return member ? { subId, member } : null;
+  return member ? { subId, member, orgId: orgId ?? null } : null;
 }
 
-async function saveInvoice(invoice: Stripe.Invoice, memberId: string, subId: string) {
+async function saveInvoice(invoice: Stripe.Invoice, memberId: string, subId: string, orgId: string | null) {
   const db = admin();
   const { data: subRow } = await db.from('subscriptions').select('id').eq('stripe_subscription_id', subId).maybeSingle();
   const description = invoice.lines?.data?.map((l) => l.description).filter(Boolean).join(', ') || 'CES Essentials membership';
@@ -141,6 +153,8 @@ async function saveInvoice(invoice: Stripe.Invoice, memberId: string, subId: str
     {
       stripe_invoice_id: invoice.id,
       member_id: memberId,
+      organization_id: orgId,
+      quantity: invoice.lines?.data?.reduce((n, l) => Math.max(n, l.quantity ?? 0), 0) || null,
       subscription_id: subRow?.id ?? null,
       amount_due_cents: invoice.amount_due,
       amount_paid_cents: invoice.amount_paid,
@@ -162,7 +176,7 @@ async function invoicePaid(invoice: Stripe.Invoice) {
   const own = await ownInvoice(invoice);
   if (!own) return;
   await syncSubscription(own.subId); // clears the grace clock, restores paused access
-  const description = await saveInvoice(invoice, own.member.id, own.subId);
+  const description = await saveInvoice(invoice, own.member.id, own.subId, own.orgId);
   if (invoice.amount_paid > 0) {
     await sendReceipt(own.member, {
       id: invoice.id!,
@@ -177,7 +191,7 @@ async function invoicePaid(invoice: Stripe.Invoice) {
 async function invoiceFailed(invoice: Stripe.Invoice) {
   const own = await ownInvoice(invoice);
   if (!own) return;
-  await saveInvoice(invoice, own.member.id, own.subId);
+  await saveInvoice(invoice, own.member.id, own.subId, own.orgId);
   // First-time checkout failures never reach here as an active plan; this is a renewal.
   const db = admin();
   await db

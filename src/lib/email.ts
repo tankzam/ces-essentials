@@ -210,3 +210,76 @@ ${remaining === 0 ? '<p><strong>New members are waiting for a code.</strong> The
 <p>Add codes to the <code>activation_codes</code> table in Supabase (one code per row, column <code>code</code>).</p>`),
   });
 }
+
+// ───────────────────────── Accounts, companies, admin ─────────────────────────
+
+/** Email with a link to set a password (employees and admin-activated members). */
+export async function sendAccountInvite(
+  m: { id: string; email: string; name: string },
+  setPasswordUrl: string,
+  context: { companyName?: string; planName?: string },
+  keySuffix: string,
+) {
+  const intro = context.companyName
+    ? `${esc(context.companyName)} added you to CES Essentials${context.planName ? ` (${esc(context.planName)})` : ''}. Your membership is paid for by your company.`
+    : `Your CES Essentials membership${context.planName ? ` (${esc(context.planName)})` : ''} is active.`;
+  await send({
+    key: `invite:${m.id}:${keySuffix}`,
+    template: 'account_invite',
+    to: m.email,
+    memberId: m.id,
+    subject: context.companyName ? `${context.companyName} gave you CES Essentials` : 'Your CES Essentials membership is ready',
+    html: layout(`<h1 style="margin:0 0 12px;font-size:24px">Welcome${m.name ? `, ${esc(m.name.split(' ')[0])}` : ''}!</h1>
+${registerNotice(m.email)}
+<p>${intro}</p>
+<p>Create your password to open your member area, where you'll find every service, your setup steps, and your activation codes.</p>
+${button(setPasswordUrl, 'Create your password')}
+<p style="margin-top:20px;font-size:14px;color:#5A5C6E">Your login is ${esc(m.email)}. This link expires in 24 hours; if it does, use “Forgot password” on the login page.</p>`),
+  });
+}
+
+export async function sendCompanyWelcome(m: { id: string; email: string; name: string }, planName: string, seats: number) {
+  const site = env.siteUrl();
+  await send({
+    key: `company_welcome:${m.id}`,
+    template: 'company_welcome',
+    to: m.email,
+    memberId: m.id,
+    subject: 'Your CES Essentials company plan is active',
+    html: layout(`<h1 style="margin:0 0 12px;font-size:24px">Your company plan is active</h1>
+<p>${esc(planName)} for ${seats} people. Next step: upload your employees. Each one gets a welcome email with their own login.</p>
+${button(`${site}/hr/upload`, 'Go to your HR dashboard')}
+<p style="margin-top:20px;font-size:14px;color:#5A5C6E">Your HR login is ${esc(m.email)}.</p>`),
+  });
+}
+
+export async function sendBusinessRequestAlert(to: string, r: { id: string; company: string; contact_name: string; email: string; phone: string; people_range: string; interest: string; notes: string | null }) {
+  const site = env.siteUrl();
+  await send({
+    key: `business_request:${r.id}`,
+    template: 'business_request_alert',
+    to,
+    memberId: null,
+    subject: `New company pricing request: ${r.company}`,
+    html: layout(`<h1 style="margin:0 0 12px;font-size:22px">New company pricing request</h1>
+<p><strong>${esc(r.company)}</strong> · ${esc(r.people_range)} people · interested in ${esc(r.interest)}</p>
+<p>${esc(r.contact_name)} · ${esc(r.email)} · ${esc(r.phone)}</p>
+${r.notes ? `<p style="background:#F6F5F1;padding:12px;border-radius:8px">${esc(r.notes)}</p>` : ''}
+${button(`${site}/admin/business`, 'Review in Admin')}`),
+  });
+}
+
+export async function sendCompanySignupLink(r: { id: string; company: string; contact_name: string; email: string }, url: string) {
+  await send({
+    key: `company_link:${r.id}`,
+    template: 'company_signup_link',
+    to: r.email,
+    memberId: null,
+    subject: `Your CES Essentials company pricing, ${r.company}`,
+    html: layout(`<h1 style="margin:0 0 12px;font-size:22px">Your company pricing is ready</h1>
+<p>Hi ${esc(r.contact_name.split(' ')[0] || r.contact_name)}, thanks for your interest in CES Essentials for ${esc(r.company)}.</p>
+<p>Company pricing: <strong>Starter $15.99</strong> or <strong>All-in-One $39.99</strong> per person per month, with a 10-person minimum. Pick a plan, set up your HR login, and you can start adding employees right away.</p>
+${button(url, 'Open your private signup page')}
+<p style="margin-top:20px;font-size:14px;color:#5A5C6E">This link is private to your company. Please don't share it outside your team.</p>`),
+  });
+}

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { admin } from '@/lib/supabase/admin';
 import { env, GRACE_PERIOD_MS } from '@/lib/env';
 import { deliverWaitingCodes, syncSubscription } from '@/lib/fulfillment';
+import { finishRemovals } from '@/lib/hr';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,11 @@ export async function GET(req: Request) {
     } catch (e) {
       errors.push(`${s.stripe_subscription_id}: ${e instanceof Error ? e.message : e}`);
     }
+  }
+  try {
+    await finishRemovals(); // employees whose last paid month has ended
+  } catch (e) {
+    errors.push(`removals: ${e instanceof Error ? e.message : e}`);
   }
   try {
     await deliverWaitingCodes();
