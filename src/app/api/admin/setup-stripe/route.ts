@@ -40,7 +40,7 @@ export async function POST(req: Request) {
   const out: Record<string, unknown> = {};
 
   // ?check=1 only reports which Stripe account the key belongs to.
-  const acct = await s.accounts.retrieve();
+  const acct = await s.accounts.retrieveCurrent();
   out.account = { id: acct.id, name: acct.business_profile?.name ?? acct.settings?.dashboard?.display_name ?? null, descriptor: acct.settings?.payments?.statement_descriptor ?? null, charges_enabled: acct.charges_enabled };
   if (new URL(req.url).searchParams.get('check')) return NextResponse.json(out);
 
