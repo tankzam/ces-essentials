@@ -22,3 +22,15 @@ html { scroll-behavior: smooth; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 body { background: #F6F5F1; color: #0B0C1B; }
 :focus-visible { outline: 3px solid #F0A83C; outline-offset: 2px; }
+
+/* "Continue to checkout" pulse: a glowing amber ring and a gentle grow. */
+@keyframes pulse-cta {
+  0%   { box-shadow: 0 0 0 0 rgba(240, 168, 60, 0.75); transform: scale(1); }
+  50%  { box-shadow: 0 0 0 10px rgba(240, 168, 60, 0); transform: scale(1.04); }
+  100% { box-shadow: 0 0 0 0 rgba(240, 168, 60, 0); transform: scale(1); }
+}
+.pulse-cta { animation: pulse-cta 1.6s ease-in-out infinite; }
+.pulse-cta:hover, .pulse-cta:focus-visible { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .pulse-cta { animation: none; box-shadow: 0 0 0 3px #F0A83C; }
+}

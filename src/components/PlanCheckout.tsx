@@ -250,7 +250,7 @@ export function PlanCheckout({
               type="button"
               disabled={picked.length === 0}
               onClick={() => goCheckout({ kind: 'custom' })}
-              className="min-h-[52px] rounded-[10px] bg-navy px-7 text-[17px] font-bold text-white disabled:bg-line disabled:text-subtle"
+              className={`min-h-[52px] rounded-[10px] bg-navy px-7 text-[17px] font-bold text-white disabled:bg-line disabled:text-subtle ${picked.length > 0 ? 'pulse-cta' : ''}`}
             >
               {picked.length === 0 ? 'Pick at least one item' : 'Continue to checkout'}
             </button>
