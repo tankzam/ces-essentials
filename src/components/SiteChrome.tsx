@@ -1,4 +1,7 @@
 import Link from 'next/link';
+import { currentUser } from '@/lib/supabase/server';
+import { homeFor } from '@/lib/accounts';
+import { logout } from '@/app/(auth)/actions';
 
 export function Logo({ dark = true }: { dark?: boolean }) {
   return (
@@ -16,7 +19,7 @@ const menu = [
   { href: '/#faq', label: 'FAQ' },
 ];
 
-function MenuLinks({ stacked = false }: { stacked?: boolean }) {
+function MenuLinks({ stacked = false, accountHref }: { stacked?: boolean; accountHref: string | null }) {
   return (
     <>
       {menu.map((m) => (
@@ -27,26 +30,41 @@ function MenuLinks({ stacked = false }: { stacked?: boolean }) {
       <Link href="/for-businesses" className={`text-[15px] font-semibold text-amber no-underline ${stacked ? 'py-3' : ''}`}>
         For Businesses
       </Link>
-      <Link href="/login" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-white px-4 text-[15px] font-semibold text-navy no-underline">
-        Member Login
-      </Link>
+      {accountHref ? (
+        <>
+          <Link href={accountHref} className="inline-flex min-h-11 items-center justify-center rounded-lg bg-white px-4 text-[15px] font-semibold text-navy no-underline">
+            My Account
+          </Link>
+          <form action={logout}>
+            <button className="inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-[#3A3D5C] px-4 text-[15px] font-semibold text-white">
+              Log out
+            </button>
+          </form>
+        </>
+      ) : (
+        <Link href="/login" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-white px-4 text-[15px] font-semibold text-navy no-underline">
+          Member Login
+        </Link>
+      )}
     </>
   );
 }
 
-export function TopNav() {
+export async function TopNav() {
+  const user = await currentUser();
+  const accountHref = user ? await homeFor(user.id) : null;
   return (
     <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 px-4 py-5 sm:px-6">
       <Logo />
       <nav aria-label="Main" className="hidden items-center gap-6 lg:flex">
-        <MenuLinks />
+        <MenuLinks accountHref={accountHref} />
       </nav>
       <details className="group relative lg:hidden">
         <summary className="flex min-h-11 cursor-pointer list-none items-center rounded-lg border border-[#3A3D5C] px-4 font-semibold text-white [&::-webkit-details-marker]:hidden">
           Menu
         </summary>
-        <nav aria-label="Main" className="absolute right-0 z-20 mt-2 flex w-64 flex-col rounded-xl bg-navy-2 p-4 shadow-xl">
-          <MenuLinks stacked />
+        <nav aria-label="Main" className="absolute right-0 z-20 mt-2 flex w-64 flex-col gap-2 rounded-xl bg-navy-2 p-4 shadow-xl">
+          <MenuLinks stacked accountHref={accountHref} />
         </nav>
       </details>
     </div>
