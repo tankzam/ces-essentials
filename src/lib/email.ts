@@ -298,3 +298,35 @@ ${button(setPasswordUrl, 'Create your password')}
 <p style="margin-top:20px;font-size:14px;color:#5A5C6E">This link expires in 24 hours. If it does, use “Forgot password” on the login page. After you sign in, you'll go straight to the admin area.</p>`),
   });
 }
+
+// ───────────────────────────── Sign-in ─────────────────────────────
+
+export async function sendSignInCode(m: { id: string; email: string }, code: string, link: string, bucket: string) {
+  await send({
+    key: `signin_code:${m.id}:${bucket}`,
+    template: 'signin_code',
+    to: m.email,
+    memberId: m.id,
+    subject: `Your CES Essentials sign-in code: ${code}`,
+    html: layout(`<h1 style="margin:0 0 12px;font-size:22px">Your sign-in code</h1>
+<p>Enter this code on the login page:</p>
+<p style="margin:16px 0 20px;font-size:34px;font-weight:800;letter-spacing:0.25em;padding:14px 18px;background:#F6F5F1;border:1px dashed #C8C7BF;border-radius:10px;text-align:center">${esc(code)}</p>
+<p>Or sign in with one tap:</p>
+${button(link, 'Sign in to CES Essentials')}
+<p style="margin-top:20px;font-size:14px;color:#5A5C6E">The code and link expire in 1 hour and work once. If you didn't ask to sign in, you can ignore this email.</p>`),
+  });
+}
+
+export async function sendPasswordReset(m: { id: string; email: string }, link: string, bucket: string) {
+  await send({
+    key: `password_reset:${m.id}:${bucket}`,
+    template: 'password_reset',
+    to: m.email,
+    memberId: m.id,
+    subject: 'Reset your CES Essentials password',
+    html: layout(`<h1 style="margin:0 0 12px;font-size:22px">Reset your password</h1>
+<p>Click below to choose a new password for ${esc(m.email)}.</p>
+${button(link, 'Choose a new password')}
+<p style="margin-top:20px;font-size:14px;color:#5A5C6E">This link expires in 24 hours and works once. If you didn't ask to reset your password, you can ignore this email.</p>`),
+  });
+}
