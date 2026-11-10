@@ -53,7 +53,7 @@ function CodeLogin({ next }: { next?: string }) {
   if (step === 'email') {
     return (
       <form action={sendAction} className="flex flex-col gap-4">
-        <p className="text-[15px] text-muted">No password needed. We&apos;ll email you a 6-digit code.</p>
+        <p className="text-[15px] text-muted">No password needed. We&apos;ll email you a sign-in code.</p>
         <label className="flex flex-col gap-1.5 text-sm font-semibold">Account email<input name="email" type="email" autoComplete="email" required className={field} /></label>
         <Status state={sent} />
         <button className={primary} disabled={sending}>{sending ? 'Sending…' : 'Email me a code'}</button>
@@ -66,16 +66,16 @@ function CodeLogin({ next }: { next?: string }) {
       <input type="hidden" name="next" value={next ?? ''} />
       {!checked && sent?.message && <p role="status" className="rounded-lg bg-ok-soft px-4 py-3 font-semibold text-ok">{sent.message}</p>}
       <label className="flex flex-col gap-1.5 text-sm font-semibold">
-        6-digit code
+        Sign-in code from the email
         <input
           name="code"
           inputMode="numeric"
           autoComplete="one-time-code"
           pattern="[0-9 ]*"
-          maxLength={7}
+          maxLength={12}
           required
           autoFocus
-          className={`${field} text-center text-2xl font-extrabold tracking-[0.3em]`}
+          className={`${field} text-center text-2xl font-extrabold tracking-[0.2em]`}
         />
       </label>
       <Status state={checked} />

@@ -53,7 +53,7 @@ export async function requestReset(_: FormState, form: FormData): Promise<FormSt
 
 export type CodeState = { error?: string; message?: string; email?: string; step?: 'email' | 'code' } | undefined;
 
-/** Step 1: email a 6-digit sign-in code (and a one-tap link). */
+/** Step 1: email a sign-in code (and a one-tap link). */
 export async function sendCode(_: CodeState, form: FormData): Promise<CodeState> {
   const { email, profile } = await profileFor(form.get('email'));
   if (!email) return { error: 'Enter your account email.', step: 'email' };
@@ -69,14 +69,14 @@ export async function sendCode(_: CodeState, form: FormData): Promise<CodeState>
     }
   }
   // Same answer whether or not the email exists.
-  return { step: 'code', email, message: `If ${email} has an account, we just emailed a 6-digit code. It can take a minute to arrive.` };
+  return { step: 'code', email, message: `If ${email} has an account, we just emailed a sign-in code. It can take a minute to arrive.` };
 }
 
 /** Step 2: check the code and sign in. */
 export async function verifyCode(_: CodeState, form: FormData): Promise<CodeState> {
   const email = String(form.get('email') ?? '').trim().toLowerCase();
   const token = String(form.get('code') ?? '').replace(/\D/g, '');
-  if (token.length !== 6) return { step: 'code', email, error: 'Enter the 6-digit code from the email.' };
+  if (token.length < 6 || token.length > 10) return { step: 'code', email, error: 'Enter the code from the email (all of its digits).' };
   const supabase = await serverClient();
   const { data, error } = await supabase.auth.verifyOtp({ email, token, type: 'email' });
   if (error || !data.user) return { step: 'code', email, error: 'That code didn’t work. It may have expired or already been used. Ask for a new code.' };
