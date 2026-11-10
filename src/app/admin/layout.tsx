@@ -33,6 +33,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             { href: '/admin/business', label: 'Business Requests' },
             { href: '/admin/policy', label: 'Policy Log' },
             { href: '/admin/activity', label: 'Activity Log' },
+            { href: '/member/services', label: '← My member area' },
           ]}
         />
         <main className="flex min-w-0 flex-1 flex-col gap-6">

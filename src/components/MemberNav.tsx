@@ -11,7 +11,7 @@ const tabs = [
   { href: '/member/benefits', label: 'Benefits Guide' },
 ];
 
-export function MemberNav({ greeting }: { greeting: string }) {
+export function MemberNav({ greeting, isAdmin = false }: { greeting: string; isAdmin?: boolean }) {
   const path = usePathname();
   return (
     <nav aria-label="Member menu" className="print:hidden flex flex-col gap-1.5 rounded-2xl border border-line bg-white p-3.5 lg:w-[250px] lg:shrink-0">
@@ -31,6 +31,14 @@ export function MemberNav({ greeting }: { greeting: string }) {
           );
         })}
       </div>
+      {isAdmin && (
+        <Link
+          href="/admin"
+          className="mt-2 flex min-h-12 items-center justify-center rounded-[10px] bg-amber px-3.5 font-bold text-navy"
+        >
+          Go to Admin
+        </Link>
+      )}
     </nav>
   );
 }
