@@ -82,7 +82,7 @@ export default async function Home() {
                 <div key={c.label} className="flex flex-col gap-2.5 rounded-2xl bg-navy-2 p-7">
                   <p className="text-mist">{c.label}</p>
                   <p className="text-xl text-mist">
-                    Usually <span className="line-through">{c.usual}</span>
+                    Usually <span className="whitespace-nowrap line-through">{c.usual}</span>
                   </p>
                   <p className="text-4xl font-extrabold text-amber">$0</p>
                   <p className="text-[15px] text-mist">for members</p>

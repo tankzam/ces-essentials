@@ -24,8 +24,8 @@ export function LoginForm({ next }: { next?: string }) {
       </div>
       {mode === 'password' ? <PasswordLogin next={next} /> : <CodeLogin next={next} />}
       <div className="flex flex-wrap justify-between gap-2 text-[15px]">
-        <Link href="/forgot-password" className="underline">Forgot password?</Link>
-        <Link href="/#plans" className="underline">Not a member? See plans</Link>
+        <Link href="/forgot-password" className="inline-flex min-h-11 items-center underline">Forgot password?</Link>
+        <Link href="/#plans" className="inline-flex min-h-11 items-center underline">Not a member? See plans</Link>
       </div>
     </div>
   );
@@ -82,7 +82,7 @@ function CodeLogin({ next }: { next?: string }) {
       <button className={primary} disabled={verifying}>{verifying ? 'Checking…' : 'Sign in'}</button>
       <p className="text-[15px] text-muted">
         Didn&apos;t get it? Check spam, or{' '}
-        <button type="submit" formAction={sendAction} formNoValidate className="font-semibold text-navy underline">send a new code</button> (one per minute).
+        <button type="submit" formAction={sendAction} formNoValidate className="inline-flex min-h-11 items-center font-semibold text-navy underline">send a new code</button> (one per minute).
       </p>
     </form>
   );

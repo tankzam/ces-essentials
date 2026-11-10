@@ -5,7 +5,7 @@ import { logout } from '@/app/(auth)/actions';
 
 export function Logo({ dark = true }: { dark?: boolean }) {
   return (
-    <Link href="/" className={`flex items-center gap-2.5 text-xl font-extrabold tracking-tight ${dark ? 'text-white' : 'text-navy'}`}>
+    <Link href="/" className={`flex min-h-11 items-center gap-2.5 text-xl font-extrabold tracking-tight ${dark ? 'text-white' : 'text-navy'}`}>
       <span className="inline-flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-amber text-[15px] font-extrabold text-navy">CES</span>
       <span>Essentials</span>
     </Link>
@@ -23,11 +23,11 @@ function MenuLinks({ stacked = false, accountHref }: { stacked?: boolean; accoun
   return (
     <>
       {menu.map((m) => (
-        <Link key={m.href} href={m.href} className={`text-[15px] text-[#E6E7F0] no-underline hover:text-white ${stacked ? 'py-3' : ''}`}>
+        <Link key={m.href} href={m.href} className={`inline-flex min-h-11 items-center text-[15px] text-[#E6E7F0] no-underline hover:text-white ${stacked ? 'py-1' : ''}`}>
           {m.label}
         </Link>
       ))}
-      <Link href="/for-businesses" className={`text-[15px] font-semibold text-amber no-underline ${stacked ? 'py-3' : ''}`}>
+      <Link href="/for-businesses" className={`inline-flex min-h-11 items-center text-[15px] font-semibold text-amber no-underline ${stacked ? 'py-1' : ''}`}>
         For Businesses
       </Link>
       {accountHref ? (
@@ -84,9 +84,9 @@ export function SiteFooter() {
   return (
     <footer className="bg-navy text-mist">
       <div className="mx-auto flex max-w-[1180px] flex-col items-center gap-5 px-4 py-12 text-center sm:px-6">
-        <nav aria-label="Footer" className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-[15px]">
+        <nav aria-label="Footer" className="flex flex-wrap justify-center gap-x-6 gap-y-1 text-[15px]">
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className="text-[#E6E7F0] underline-offset-2 hover:underline">
+            <Link key={l.href} href={l.href} className="inline-flex min-h-11 items-center text-[#E6E7F0] underline-offset-2 hover:underline">
               {l.label}
             </Link>
           ))}

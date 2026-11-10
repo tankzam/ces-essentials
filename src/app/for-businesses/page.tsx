@@ -16,7 +16,7 @@ export default function Page() {
       <header className="bg-navy text-white">
         <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-4 px-4 py-5 sm:px-6">
           <Logo />
-          <Link href="/" className="text-[15px] text-[#E6E7F0]">← Back to home</Link>
+          <Link href="/" className="inline-flex min-h-11 items-center text-[15px] text-[#E6E7F0]">← Back to home</Link>
         </div>
         <section className="mx-auto flex max-w-[1180px] flex-col items-center gap-5 px-4 pb-20 pt-14 text-center sm:px-6">
           <p className="text-sm font-semibold uppercase tracking-widest text-amber">For Businesses</p>
