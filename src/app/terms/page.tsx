@@ -7,6 +7,7 @@ export default function Page() {
   return (
     <LegalPage
       title="Terms of Service"
+      date="November 10, 2026"
       intro={
         <>
           <p>
@@ -178,6 +179,16 @@ export default function Page() {
               To the fullest extent the law allows, CES will not be liable for any indirect, incidental, special, consequential, or punitive damages,
               or for anything a third-party provider does or does not do. Our total liability for any claim related to the Service is limited to the
               amount you paid us in the 3 months before the claim arose. Some places do not allow these limits, so they may not fully apply to you.
+            </p>
+          ),
+        },
+        {
+          heading: 'Governing law',
+          body: (
+            <p>
+              These Terms are governed by the laws of the State of Wyoming, without regard to its conflict-of-law rules. Any dispute about these
+              Terms or the Service will be handled in the state or federal courts located in Wyoming, unless the law where you live gives you the
+              right to bring it somewhere else. Before starting any formal dispute, please email us so we can try to resolve it first.
             </p>
           ),
         },

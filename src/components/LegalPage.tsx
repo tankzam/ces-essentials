@@ -4,10 +4,10 @@ export const COMPANY = 'Creating Empowerment Solutions LLC';
 export const CONTACT_EMAIL = 'abryant@tbfremail.com';
 export const EFFECTIVE_DATE = 'November 9, 2026';
 
-export function LegalPage({ title, intro, sections }: { title: string; intro: React.ReactNode; sections: { heading: string; body: React.ReactNode }[] }) {
+export function LegalPage({ title, intro, sections, date = EFFECTIVE_DATE }: { title: string; intro: React.ReactNode; sections: { heading: string; body: React.ReactNode }[]; date?: string }) {
   return (
     <PublicPage title={title}>
-      <p className="mb-8 text-[15px] text-subtle">Effective date: {EFFECTIVE_DATE}</p>
+      <p className="mb-8 text-[15px] text-subtle">Effective date: {date}</p>
       <div className="flex flex-col gap-8 text-[17px] leading-relaxed">
         <div className="flex flex-col gap-4">{intro}</div>
         {sections.map((s, i) => (
