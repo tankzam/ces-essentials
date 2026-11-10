@@ -12,7 +12,7 @@ const badge = {
   removing: 'bg-[#ECEBE6] text-muted',
 };
 const field = 'min-h-12 w-full rounded-lg border border-[#C8C7BF] bg-white px-3 text-base';
-const small = 'min-h-10 rounded-lg px-3.5 text-sm font-bold';
+const small = 'min-h-11 rounded-lg px-3.5 text-sm font-bold';
 
 export function HrEmployees({ people }: { people: Row[] }) {
   const router = useRouter();
@@ -43,6 +43,26 @@ export function HrEmployees({ people }: { people: Row[] }) {
     }
   }
 
+  const actions = (p: Row) => (
+    <div className="flex flex-wrap gap-2">
+      {p.kind === 'removing' ? (
+        <HrActionButton body={{ action: 'keep', profileId: p.profileId }} className={`${small} border border-navy bg-white`}>Keep</HrActionButton>
+      ) : (
+        <HrActionButton
+          body={{ action: 'remove', profileId: p.profileId }}
+          confirm={`Remove ${p.name}? They keep access until the end of this billing month.`}
+          className={`${small} border border-danger bg-white text-danger`}
+        >
+          Remove
+        </HrActionButton>
+      )}
+      {p.kind === 'invited' && (
+        <HrActionButton body={{ action: 'resend', profileId: p.profileId }} className={`${small} border border-navy bg-white`}>Resend welcome</HrActionButton>
+      )}
+    </div>
+  );
+  const empty = people.length ? 'No one matches that search.' : 'No employees yet. Upload a spreadsheet or add one person.';
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end gap-3">
@@ -67,7 +87,23 @@ export function HrEmployees({ people }: { people: Row[] }) {
         </form>
       )}
 
-      <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+      {/* Phones: one card per person, everything visible without sideways scrolling */}
+      <ul className="flex flex-col gap-3 md:hidden">
+        {shown.length === 0 && <li className="rounded-2xl border border-line bg-white p-4 text-muted">{empty}</li>}
+        {shown.map((p) => (
+          <li key={p.profileId} className="flex flex-col gap-2.5 rounded-2xl border border-line bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-semibold">{p.name}</p>
+              <span className={`shrink-0 rounded-full px-2.5 py-1 text-[13px] font-bold ${badge[p.kind]}`}>{p.status}</span>
+            </div>
+            <p className="break-all text-[15px] text-muted">{p.email}</p>
+            <p className="text-sm text-subtle">Added {p.added}</p>
+            {actions(p)}
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-2xl border border-line bg-white md:block">
         <table className="w-full min-w-[760px] border-collapse text-[15px]">
           <thead>
             <tr className="text-left text-[13px] uppercase tracking-wider text-subtle">
@@ -80,7 +116,7 @@ export function HrEmployees({ people }: { people: Row[] }) {
           </thead>
           <tbody>
             {shown.length === 0 && (
-              <tr className="border-t border-line"><td colSpan={5} className="px-4 py-4 text-muted">{people.length ? 'No one matches that search.' : 'No employees yet. Upload a spreadsheet or add one person.'}</td></tr>
+              <tr className="border-t border-line"><td colSpan={5} className="px-4 py-4 text-muted">{empty}</td></tr>
             )}
             {shown.map((p) => (
               <tr key={p.profileId} className="border-t border-line align-top">
@@ -89,22 +125,7 @@ export function HrEmployees({ people }: { people: Row[] }) {
                 <td className="px-4 py-3.5"><span className={`rounded-full px-2.5 py-1 text-[13px] font-bold ${badge[p.kind]}`}>{p.status}</span></td>
                 <td className="px-4 py-3.5 text-subtle">{p.added}</td>
                 <td className="px-4 py-3.5">
-                  <div className="flex flex-wrap gap-2">
-                    {p.kind === 'removing' ? (
-                      <HrActionButton body={{ action: 'keep', profileId: p.profileId }} className={`${small} border border-navy bg-white`}>Keep</HrActionButton>
-                    ) : (
-                      <HrActionButton
-                        body={{ action: 'remove', profileId: p.profileId }}
-                        confirm={`Remove ${p.name}? They keep access until the end of this billing month.`}
-                        className={`${small} border border-danger bg-white text-danger`}
-                      >
-                        Remove
-                      </HrActionButton>
-                    )}
-                    {p.kind === 'invited' && (
-                      <HrActionButton body={{ action: 'resend', profileId: p.profileId }} className={`${small} border border-navy bg-white`}>Resend welcome</HrActionButton>
-                    )}
-                  </div>
+                  {actions(p)}
                 </td>
               </tr>
             ))}

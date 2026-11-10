@@ -23,7 +23,38 @@ export default async function Page() {
       <p className="text-muted">
         Requests from the For Businesses form. Approving sends the company a private signup link with company pricing: Starter $15.99 and All-in-One $39.99 per person, 10-person minimum.
       </p>
-      <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+      {/* Phones: one card per request */}
+      <ul className="flex flex-col gap-3 md:hidden">
+        {(requests ?? []).length === 0 && <li className="rounded-2xl border border-line bg-white p-4 text-muted">No requests yet.</li>}
+        {(requests ?? []).map((r) => {
+          const [label, cls] = badge[r.status] ?? [r.status, ''];
+          const link = r.signup_token ? `${env.siteUrl()}/company/signup/${r.signup_token}` : null;
+          return (
+            <li key={r.id} className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <p className="font-semibold">{r.company}</p>
+                <span className={`shrink-0 rounded-full px-2.5 py-1 text-[13px] font-bold ${cls}`}>{label}</span>
+              </div>
+              <p className="text-[15px]">{r.contact_name}</p>
+              <p className="break-all text-sm text-subtle">{r.email} · {r.phone}</p>
+              <p className="text-[15px]">{r.people_range} people · {r.interest} · <span className="text-subtle">{formatDate(r.created_at)}</span></p>
+              {r.notes && <p className="text-sm text-muted">“{r.notes}”</p>}
+              {r.status === 'pending' ? (
+                <div className="flex flex-wrap gap-2">
+                  <AdminAction body={{ action: 'approve_request', requestId: r.id }} className="min-h-11 rounded-lg bg-amber px-3.5 text-sm font-bold text-navy">Approve &amp; send link</AdminAction>
+                  <AdminAction body={{ action: 'decline_request', requestId: r.id }} confirm={`Decline ${r.company}?`}>Decline</AdminAction>
+                </div>
+              ) : link && r.status === 'approved' ? (
+                <div className="flex items-center gap-2"><span className="text-sm text-subtle">Private link emailed</span><CopyButton text={link} /></div>
+              ) : (
+                <span className="text-sm text-subtle">{r.status === 'signed_up' ? 'Company plan active' : 'No action'}</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-2xl border border-line bg-white md:block">
         <table className="w-full min-w-[920px] border-collapse text-[15px]">
           <thead>
             <tr className="text-left text-[13px] uppercase tracking-wider text-subtle">
@@ -57,7 +88,7 @@ export default async function Page() {
                   <td className="px-4 py-3.5">
                     {r.status === 'pending' ? (
                       <div className="flex flex-wrap gap-2">
-                        <AdminAction body={{ action: 'approve_request', requestId: r.id }} className="min-h-10 rounded-lg bg-amber px-3.5 text-sm font-bold text-navy">Approve &amp; send link</AdminAction>
+                        <AdminAction body={{ action: 'approve_request', requestId: r.id }} className="min-h-11 rounded-lg bg-amber px-3.5 text-sm font-bold text-navy">Approve &amp; send link</AdminAction>
                         <AdminAction body={{ action: 'decline_request', requestId: r.id }} confirm={`Decline ${r.company}?`}>Decline</AdminAction>
                       </div>
                     ) : link && r.status === 'approved' ? (

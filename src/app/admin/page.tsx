@@ -66,20 +66,59 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
     .filter((p) => p.active && p.public)
     .map((p) => ({ id: p.id, name: p.name, kind: p.kind, priceCents: p.price_cents }));
 
+  type Row = (typeof rows)[number];
+  const memberAction = (m: Row) => (
+    <>
+                  {m.role !== 'admin' &&
+        (m.access_disabled ? (
+          <AdminAction body={{ action: 'activate', profileId: m.id }}>Activate</AdminAction>
+        ) : (
+          <AdminAction
+            body={{ action: 'deactivate', profileId: m.id }}
+            confirm={`Deactivate ${m.email}? Access shuts off right away and their plan won't renew. All records are kept.`}
+            className="min-h-11 rounded-lg border border-danger bg-white px-3.5 text-sm font-bold text-danger"
+          >
+            Deactivate
+          </AdminAction>
+        ))}
+    </>
+  );
+  const statusClass = (m: Row) => m.status.startsWith('Active') ? 'bg-ok-soft text-ok' : m.status === 'Deactivated' ? 'bg-[#ECEBE6] text-muted' : 'bg-amber-soft text-[#7A4E05]';
+
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="text-[32px] font-extrabold tracking-tight">Members</h1>
         <ManualActivate products={buyable} />
       </div>
-      <form className="flex gap-3" action="/admin">
+      <form className="flex flex-col gap-3 sm:flex-row sm:items-end" action="/admin">
         <label className="flex flex-1 flex-col gap-1.5 text-sm font-semibold">
           Search members
           <input name="q" type="search" defaultValue={q} placeholder="Name or email" className="min-h-12 rounded-lg border border-[#C8C7BF] bg-white px-3 text-base" />
         </label>
-        <button className="mt-6 min-h-12 rounded-[10px] bg-navy px-5 font-bold text-white">Search</button>
+        <button className="min-h-12 rounded-[10px] bg-navy px-5 font-bold text-white">Search</button>
       </form>
-      <div className="overflow-x-auto rounded-2xl border border-line bg-white">
+      {/* Phones: one card per member */}
+      <ul className="flex flex-col gap-3 md:hidden">
+        {rows.length === 0 && <li className="rounded-2xl border border-line bg-white p-4 text-muted">No members found.</li>}
+        {rows.map((m) => (
+          <li key={m.id} className="flex flex-col gap-2 rounded-2xl border border-line bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              <p className="font-semibold">{m.full_name}{m.role === 'admin' && <span className="ml-2 rounded bg-navy px-1.5 py-0.5 text-xs font-bold text-white">ADMIN</span>}</p>
+              <span className={`shrink-0 rounded-full px-2.5 py-1 text-[13px] font-bold ${statusClass(m)}`}>{m.status}</span>
+            </div>
+            <p className="break-all text-[15px] text-muted">{m.email}</p>
+            <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[15px]">
+              <dt className="text-subtle">Plan</dt><dd>{m.plan}</dd>
+              <dt className="text-subtle">Price</dt><dd>{m.price}</dd>
+              <dt className="text-subtle">Code</dt><dd className="break-all font-mono text-sm">{m.code}</dd>
+            </dl>
+            <div>{memberAction(m)}</div>
+          </li>
+        ))}
+      </ul>
+
+      <div className="hidden overflow-x-auto rounded-2xl border border-line bg-white md:block">
         <table className="w-full min-w-[880px] border-collapse text-[15px]">
           <thead>
             <tr className="text-left text-[13px] uppercase tracking-wider text-subtle">
@@ -96,28 +135,17 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
             {rows.map((m) => (
               <tr key={m.id} className="border-t border-line align-top">
                 <td className="px-4 py-3.5">
-                  <p className="font-semibold">{m.full_name}{m.role === 'admin' && <span className="ml-2 rounded bg-navy px-1.5 py-0.5 text-[11px] font-bold text-white">ADMIN</span>}</p>
+                  <p className="font-semibold">{m.full_name}{m.role === 'admin' && <span className="ml-2 rounded bg-navy px-1.5 py-0.5 text-xs font-bold text-white">ADMIN</span>}</p>
                   <p className="text-sm text-subtle">{m.email}</p>
                 </td>
                 <td className="px-4 py-3.5">{m.plan}</td>
                 <td className="px-4 py-3.5">{m.price}</td>
                 <td className="px-4 py-3.5 font-mono text-sm">{m.code}</td>
                 <td className="px-4 py-3.5">
-                  <span className={`rounded-full px-2.5 py-1 text-[13px] font-bold ${m.status.startsWith('Active') ? 'bg-ok-soft text-ok' : m.status === 'Deactivated' ? 'bg-[#ECEBE6] text-muted' : 'bg-amber-soft text-[#7A4E05]'}`}>{m.status}</span>
+                  <span className={`rounded-full px-2.5 py-1 text-[13px] font-bold ${statusClass(m)}`}>{m.status}</span>
                 </td>
                 <td className="px-4 py-3.5">
-                  {m.role !== 'admin' &&
-                    (m.access_disabled ? (
-                      <AdminAction body={{ action: 'activate', profileId: m.id }}>Activate</AdminAction>
-                    ) : (
-                      <AdminAction
-                        body={{ action: 'deactivate', profileId: m.id }}
-                        confirm={`Deactivate ${m.email}? Access shuts off right away and their plan won't renew. All records are kept.`}
-                        className="min-h-10 rounded-lg border border-danger bg-white px-3.5 text-sm font-bold text-danger"
-                      >
-                        Deactivate
-                      </AdminAction>
-                    ))}
+                  {memberAction(m)}
                 </td>
               </tr>
             ))}

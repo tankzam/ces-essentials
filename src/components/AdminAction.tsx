@@ -8,7 +8,7 @@ export function AdminAction({
   body,
   children,
   confirm,
-  className = 'min-h-10 rounded-lg border border-navy bg-white px-3.5 text-sm font-bold',
+  className = 'min-h-11 rounded-lg border border-navy bg-white px-3.5 text-sm font-bold',
 }: {
   body: Record<string, unknown>;
   children: React.ReactNode;

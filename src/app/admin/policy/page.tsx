@@ -28,7 +28,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
     <>
       <h1 className="text-[32px] font-extrabold tracking-tight">Policy Log</h1>
       <p className="text-muted">Every refund-policy checkbox at checkout, with the exact wording the member agreed to. Use it as proof in a dispute. Times are Eastern.</p>
-      <form className="flex gap-3" action="/admin/policy">
+      <form className="flex flex-col gap-3 sm:flex-row" action="/admin/policy">
         <input name="q" type="search" defaultValue={q} placeholder="Search by email" aria-label="Search by email" className="min-h-12 flex-1 rounded-lg border border-[#C8C7BF] bg-white px-3 text-base" />
         <button className="min-h-12 rounded-[10px] bg-navy px-5 font-bold text-white">Search</button>
       </form>

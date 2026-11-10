@@ -31,12 +31,12 @@ export function SideNav({ title, tabs, label }: { title: string; label: string; 
 export function DashHeader({ title, who, children }: { title: string; who: string; children?: React.ReactNode }) {
   return (
     <header className="bg-navy text-white print:hidden">
-      <div className="mx-auto flex max-w-[1320px] flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5 text-xl font-extrabold">
-          <span className="inline-flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-amber text-[15px] font-extrabold text-navy">CES</span>
-          <span>{title}</span>
+      <div className="mx-auto flex max-w-[1320px] items-center justify-between gap-3 px-4 py-4 sm:px-6">
+        <Link href="/" className="flex min-h-11 min-w-0 items-center gap-2.5 text-lg font-extrabold sm:text-xl">
+          <span className="inline-flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[9px] bg-amber text-[15px] font-extrabold text-navy">CES</span>
+          <span className="truncate">{title}</span>
         </Link>
-        <div className="flex items-center gap-4 text-[15px]">
+        <div className="flex shrink-0 items-center gap-4 text-[15px]">
           <span className="hidden text-mist sm:inline">{who}</span>
           {children}
         </div>
