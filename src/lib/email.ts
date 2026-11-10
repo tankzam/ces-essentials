@@ -84,10 +84,10 @@ const codeBox = (label: string, code: string) =>
 
 // ───────────────────────────── Templates ─────────────────────────────
 
-export async function sendWelcome(m: { id: string; email: string; name: string }, planName: string) {
+export async function sendWelcome(m: { id: string; email: string; name: string }, planName: string, keySuffix = '') {
   const site = env.siteUrl();
   await send({
-    key: `welcome:${m.id}`,
+    key: keySuffix ? `welcome:${m.id}:${keySuffix}` : `welcome:${m.id}`,
     template: 'welcome',
     to: m.email,
     memberId: m.id,

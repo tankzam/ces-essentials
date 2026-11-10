@@ -68,7 +68,12 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
 
   type Row = (typeof rows)[number];
   const memberAction = (m: Row) => (
-    <>
+    <span className="flex flex-wrap gap-2">
+      {m.status.startsWith('Active') && (
+        <AdminAction body={{ action: 'resend_emails', profileId: m.id }} confirm={`Resend the welcome and setup emails to ${m.email}?`}>
+          Resend emails
+        </AdminAction>
+      )}
                   {m.role !== 'admin' &&
         (m.access_disabled ? (
           <AdminAction body={{ action: 'activate', profileId: m.id }}>Activate</AdminAction>
@@ -81,7 +86,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
             Deactivate
           </AdminAction>
         ))}
-    </>
+    </span>
   );
   const statusClass = (m: Row) => m.status.startsWith('Active') ? 'bg-ok-soft text-ok' : m.status === 'Deactivated' ? 'bg-[#ECEBE6] text-muted' : 'bg-amber-soft text-[#7A4E05]';
 

@@ -69,34 +69,37 @@ async function checkoutCompleted(session: Stripe.Checkout.Session) {
   const db = admin();
   const { data: order } = await db.from('orders').select('*').eq('id', session.metadata.order_id).maybeSingle();
   if (!order || order.stripe_checkout_session_id !== session.id) throw new Error(`Order not found for session ${session.id}`);
-  if (order.status === 'paid') return;
-
   const subscriptionId = idOf(session.subscription);
 
-  // Verify the amount and the exact prices charged before turning anything on.
-  const lineItems = await stripe().checkout.sessions.listLineItems(session.id, { limit: 100 });
-  const expected = (order.items as { stripe_price_id: string; price_cents: number; quantity?: number }[])
-    .map((i) => `${i.stripe_price_id}:${i.price_cents}:${i.quantity ?? 1}`)
-    .sort();
-  const charged = lineItems.data.map((li) => `${li.price?.id}:${li.price?.unit_amount}:${li.quantity ?? 1}`).sort();
-  const amountOk =
-    session.amount_total === order.expected_total_cents &&
-    session.currency === order.currency &&
-    JSON.stringify(expected) === JSON.stringify(charged);
-
-  if (!amountOk) {
+  // A retry of an order that was already verified skips straight to syncing and
+  // emails (both safe to repeat), so a failed email earlier is sent now.
+  if (order.status !== 'paid') {
+    
+    // Verify the amount and the exact prices charged before turning anything on.
+    const lineItems = await stripe().checkout.sessions.listLineItems(session.id, { limit: 100 });
+    const expected = (order.items as { stripe_price_id: string; price_cents: number; quantity?: number }[])
+      .map((i) => `${i.stripe_price_id}:${i.price_cents}:${i.quantity ?? 1}`)
+      .sort();
+    const charged = lineItems.data.map((li) => `${li.price?.id}:${li.price?.unit_amount}:${li.quantity ?? 1}`).sort();
+    const amountOk =
+      session.amount_total === order.expected_total_cents &&
+      session.currency === order.currency &&
+      JSON.stringify(expected) === JSON.stringify(charged);
+  
+    if (!amountOk) {
+      await db
+        .from('orders')
+        .update({ status: 'amount_mismatch', stripe_subscription_id: subscriptionId })
+        .eq('id', order.id);
+      console.error('CES Essentials amount mismatch', { order: order.id, expected: order.expected_total_cents, got: session.amount_total });
+      return;
+    }
+  
     await db
       .from('orders')
-      .update({ status: 'amount_mismatch', stripe_subscription_id: subscriptionId })
+      .update({ status: 'paid', paid_at: new Date().toISOString(), stripe_subscription_id: subscriptionId })
       .eq('id', order.id);
-    console.error('CES Essentials amount mismatch', { order: order.id, expected: order.expected_total_cents, got: session.amount_total });
-    return;
   }
-
-  await db
-    .from('orders')
-    .update({ status: 'paid', paid_at: new Date().toISOString(), stripe_subscription_id: subscriptionId })
-    .eq('id', order.id);
 
   if (subscriptionId) await syncSubscription(subscriptionId);
 

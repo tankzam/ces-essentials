@@ -246,7 +246,9 @@ export async function applyEntitlements(member: Member, scope: Scope, wanted: st
       update.starts_at = now.toISOString();
       update.available_at = new Date(now.getTime() + (delay.get(serviceId) ?? 0) * 3600_000).toISOString();
     }
-    if (hasAccess(access) && (startingFresh || prev?.status === 'paused')) newlyOn.push(serviceId);
+    // Every service this source turns on gets its setup email. Sending is idempotent (email_log),
+    // so a retry after a failed email sends what's missing and nothing twice.
+    if (hasAccess(access)) newlyOn.push(serviceId);
     const { error } = await db.from('entitlements').upsert(update, { onConflict: 'member_id,service_id' });
     if (error) throw error;
   }

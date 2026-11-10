@@ -5,10 +5,10 @@ import { addAdmin, adminOrNull, ensureAccount, logActivity, setPasswordLink } fr
 import { admin } from '@/lib/supabase/admin';
 import { stripe } from '@/lib/stripe';
 import { env } from '@/lib/env';
-import { applyEntitlements, getMember, resyncMember } from '@/lib/fulfillment';
+import { applyEntitlements, getMember, resyncMember, setupInfo } from '@/lib/fulfillment';
 import { allProducts, planLabel, servicesFor } from '@/lib/catalog';
 import { currentPlan } from '@/lib/plan';
-import { sendAccountInvite, sendCompanySignupLink } from '@/lib/email';
+import { sendAccountInvite, sendCompanySignupLink, sendServiceSetup, sendWelcome } from '@/lib/email';
 
 export const runtime = 'nodejs';
 export const maxDuration = 120;
@@ -23,6 +23,7 @@ const Body = z.discriminatedUnion('action', [
   }),
   z.object({ action: z.literal('deactivate'), profileId: z.string().uuid() }),
   z.object({ action: z.literal('activate'), profileId: z.string().uuid() }),
+  z.object({ action: z.literal('resend_emails'), profileId: z.string().uuid() }),
   z.object({ action: z.literal('threshold'), value: z.number().int().min(0).max(100000) }),
   z.object({ action: z.literal('add_admin'), email: z.string().trim().toLowerCase().email(), fullName: z.string().trim().min(2).max(120) }),
   z.object({ action: z.literal('approve_request'), requestId: z.string().uuid() }),
@@ -67,6 +68,24 @@ export async function POST(req: Request) {
       await resyncMember(member.id);
       await logActivity(me, `deactivated ${member.email}${stopped ? ' (renewals stopped)' : ''}`, member.email);
       return NextResponse.json({ ok: true, message: `${member.email} is deactivated.${stopped ? ' Their plan won’t renew.' : ''}` });
+    }
+
+    case 'resend_emails': {
+      const member = await getMember(b.profileId);
+      if (!member) return fail('Member not found.', 404);
+      const stamp = `resend:${Date.now()}`;
+      const plan = await currentPlan(member.id);
+      if (plan) {
+        const products = (await allProducts()).filter((p) => plan.items.some((i) => i.product_id === p.id));
+        await sendWelcome({ id: member.id, email: member.email, name: member.full_name }, planLabel(products), stamp);
+      }
+      const { data: ents } = await db.from('entitlements').select('service_id').eq('member_id', member.id).in('status', ['active', 'grace']);
+      for (const e of ents ?? []) {
+        const info = await setupInfo(e.service_id, member.id, { assignCode: true });
+        if (!info.waitingForCode) await sendServiceSetup(member, info, stamp);
+      }
+      await logActivity(me, `resent welcome and setup emails to ${member.email}`, member.email);
+      return NextResponse.json({ ok: true, message: `Sent ${plan ? 'the welcome email and ' : ''}${ents?.length ?? 0} setup email${ents?.length === 1 ? '' : 's'} to ${member.email}.` });
     }
 
     case 'activate': {
