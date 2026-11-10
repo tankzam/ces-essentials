@@ -36,6 +36,23 @@ function authorized(req: Request): boolean {
 
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  // ?emailCheck=1: which Resend account/domains the configured key can see, and a test send.
+  if (new URL(req.url).searchParams.get('emailCheck')) {
+    const { Resend } = await import('resend');
+    const key = process.env.RESEND_API_KEY ?? '';
+    const r = new Resend(key);
+    const domains = await r.domains.list();
+    const from = process.env.EMAIL_FROM ?? '';
+    const to = new URL(req.url).searchParams.get('to');
+    const sent = to ? await r.emails.send({ from, to, subject: 'CES Essentials email test', html: '<p>This is a test from cesessentials.com. If you got this, email sending works.</p>' }) : null;
+    return NextResponse.json({
+      keyPrefix: key.slice(0, 6) + '…' + key.slice(-4),
+      emailFrom: from,
+      domains: domains.error ? { error: domains.error } : (domains.data?.data ?? []).map((d) => ({ name: d.name, status: d.status, region: d.region })),
+      testSend: sent ? (sent.error ? { error: sent.error } : { ok: true, id: sent.data?.id }) : 'skipped',
+    });
+  }
+
   // ?addAdmin=1 with {email, fullName}: create the first admins (before anyone can sign in to Admin).
   if (new URL(req.url).searchParams.get('addAdmin')) {
     const b = (await req.json().catch(() => ({}))) as { email?: string; fullName?: string };
