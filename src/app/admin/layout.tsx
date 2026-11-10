@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const me = await requireAdminPage();
   const [{ count: left }, threshold] = await Promise.all([
-    admin().from('activation_codes').select('id', { count: 'exact', head: true }).is('assigned_to', null),
+    admin().from('activation_codes').select('id', { count: 'exact', head: true }).is('assigned_to', null).eq('retired', false),
     getSetting('code_pool_alert_threshold'),
   ]);
   const low = (left ?? 0) < Number(threshold || 20);

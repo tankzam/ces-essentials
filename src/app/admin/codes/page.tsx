@@ -9,11 +9,12 @@ export const metadata = { title: 'Codes — CES Essentials Admin' };
 export default async function Page() {
   await requireAdminPage();
   const db = admin();
-  const [{ count: left }, { count: used }, threshold, { data: recent }] = await Promise.all([
-    db.from('activation_codes').select('id', { count: 'exact', head: true }).is('assigned_to', null),
+  const [{ count: left }, { count: used }, threshold, { data: recent }, { count: locked }] = await Promise.all([
+    db.from('activation_codes').select('id', { count: 'exact', head: true }).is('assigned_to', null).eq('retired', false),
     db.from('activation_codes').select('id', { count: 'exact', head: true }).not('assigned_to', 'is', null),
     getSetting('code_pool_alert_threshold'),
     db.from('activation_codes').select('batch, imported_at').order('imported_at', { ascending: false }).limit(500),
+    db.from('activation_codes').select('id', { count: 'exact', head: true }).eq('retired', true),
   ]);
   const batches = [...new Map((recent ?? []).map((r) => [r.batch ?? 'Imported', r.imported_at])).entries()].slice(0, 8);
   const t = Number(threshold || 20);
@@ -21,7 +22,7 @@ export default async function Page() {
   return (
     <>
       <h1 className="text-[32px] font-extrabold tracking-tight">Codes</h1>
-      <p className="text-muted">Credit Monitoring + VPN activation codes. One code per member, never reused.</p>
+      <p className="text-muted">Credit Monitoring + VPN activation codes. Each code is used once, ever: once given out or locked, it can&apos;t be deleted, edited, re-uploaded or given to anyone else.</p>
       <div className="grid gap-4 md:grid-cols-3">
         <div className="rounded-2xl border border-line bg-white p-5">
           <p className="mb-1.5 text-sm text-subtle">Codes left</p>
@@ -30,6 +31,7 @@ export default async function Page() {
         <div className="rounded-2xl border border-line bg-white p-5">
           <p className="mb-1.5 text-sm text-subtle">Assigned</p>
           <p className="text-[32px] font-extrabold">{used ?? 0}</p>
+          {!!locked && <p className="mt-1 text-sm text-subtle">+ {locked} locked (used before CES Essentials)</p>}
         </div>
         <CodesPanel threshold={t} />
       </div>

@@ -369,7 +369,7 @@ export async function assignCode(memberId: string, serviceId = 'credit_vpn'): Pr
     .from('activation_codes')
     .select('id', { count: 'exact', head: true })
     .eq('service_id', serviceId)
-    .is('assigned_to', null);
+    .is('assigned_to', null).eq('retired', false);
   const settings = await getSettings(['code_pool_alert_email', 'code_pool_alert_threshold']);
   const threshold = Number(settings.code_pool_alert_threshold || 25);
   if (settings.code_pool_alert_email && (count ?? 0) < threshold) {
