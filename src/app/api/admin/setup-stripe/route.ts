@@ -36,6 +36,22 @@ function authorized(req: Request): boolean {
 
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  // ?shopifyCheck=1: confirm the CES Marketplace store connection (read-only).
+  if (new URL(req.url).searchParams.get('shopifyCheck')) {
+    const { shopifyConnectionCheck } = await import('@/lib/shopify');
+    try {
+      const d = await shopifyConnectionCheck();
+      return NextResponse.json({
+        shop: d.shop,
+        scopes: d.currentAppInstallation.accessScopes.map((x) => x.handle),
+        cesProducts: d.products.edges.map((e) => e.node),
+        sellingPlanGroups: d.sellingPlanGroups.edges.map((e) => e.node),
+      });
+    } catch (e) {
+      return NextResponse.json({ error: e instanceof Error ? e.message : String(e) }, { status: 502 });
+    }
+  }
+
   // ?emailCheck=1: which Resend account/domains the configured key can see, and a test send.
   if (new URL(req.url).searchParams.get('emailCheck')) {
     const { Resend } = await import('resend');
