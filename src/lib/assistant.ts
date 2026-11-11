@@ -22,6 +22,51 @@ function sectionText(s: Section): string {
   return lines.join('\n');
 }
 
+// Public pages the chat reads word for word. The Benefits Guide is covered
+// in full by the structured data below (its page only renders one tab at a time).
+const PAGES: [string, string][] = [
+  ['/', 'Homepage (plans, build your own, checkout, savings, FAQ)'],
+  ['/for-businesses', 'For Businesses'],
+  ['/terms', 'Terms of Service'],
+  ['/privacy', 'Privacy Policy'],
+  ['/refund-policy', 'Refund Policy'],
+  ['/contact', 'Contact'],
+];
+
+function htmlToText(html: string): string {
+  let b = html.replace(/[\s\S]*?<body[^>]*>/i, '').replace(/<(script|style|noscript|svg|template)[\s\S]*?<\/\1>/gi, ' ');
+  b = b
+    .replace(/<\/(p|li|h[1-6]|div|section|tr|summary|details|label|button|dt|dd)>/gi, '\n')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&nbsp;/g, ' ').replace(/&[a-z]+;/g, ' ');
+  return b
+    .split('\n')
+    .map((l) => l.replace(/\s+/g, ' ').trim())
+    .filter(Boolean)
+    .filter((l, i, a) => a.indexOf(l) === i)
+    .filter((l) => l !== 'Ask a question')
+    .join('\n');
+}
+
+/** Live text of every public page. Missing pages are skipped and retried soon. */
+async function websitePages(): Promise<{ text: string; complete: boolean }> {
+  const results = await Promise.all(
+    PAGES.map(async ([path, title]) => {
+      try {
+        const res = await fetch(`${env.siteUrl()}${path}`, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
+        if (!res.ok) throw new Error(`${res.status}`);
+        return `## Page: ${title} (${env.siteUrl()}${path === '/' ? '' : path})\n${htmlToText(await res.text())}`;
+      } catch (err) {
+        console.error('chat: could not read page', path, err);
+        return null;
+      }
+    }),
+  );
+  return { text: results.filter(Boolean).join('\n\n'), complete: results.every(Boolean) };
+}
+
 async function buildKnowledge(): Promise<string> {
   const [products, services] = await Promise.all([
     allProducts(),
@@ -102,7 +147,7 @@ ${benefitText}
 const RULES = `You are the CES Essentials website assistant. You answer questions from shoppers, members, and businesses about CES Essentials plans, prices, what each benefit includes, how to sign up, company plans, and billing policies.
 
 How to answer:
-- Use only the facts in the knowledge section below. Prices there are current; quote them exactly. Never invent a price, discount, benefit, or policy. If the answer is not in the facts, say you don't have that detail and suggest emailing abryant@tbfremail.com or visiting the Contact page.
+- Use only the facts in the knowledge section below: the product facts, the Benefits Guide, and the current text of every public page of the website (homepage, For Businesses, Terms, Privacy, Refund Policy, Contact). Prices there are current; quote them exactly. You may answer questions about the Terms, Privacy Policy, and Refund Policy by explaining what those pages say, and link the page. Never invent a price, discount, benefit, or policy. If the answer is not in the facts, say you don't have that detail and suggest emailing abryant@tbfremail.com or visiting the Contact page.
 - Never name the companies that provide the benefits, even if asked directly or if the visitor names one. Say the services come from independent, licensed partner providers, and that members see setup details in their member area.
 - Help people compare. When someone lists what they want, add up the à la carte prices and point out a package if it is cheaper. Do the math carefully. For companies, multiply the per-person price by the number of people, using the ${MIN_SEATS}-person minimum.
 - You cannot see anyone's account, orders, or codes, and you cannot buy, cancel, or change anything. Point members to their member area (Log in at the top of the site) for that, and businesses to the For Businesses page.
@@ -110,17 +155,21 @@ How to answer:
 - Stay on CES Essentials topics. Politely decline unrelated requests.
 - Write in plain, friendly, short answers: a few sentences or a short list. Use simple words. Plain text only: no headings, no tables, no bold or other markdown symbols; use "- " for list items when a list helps.`;
 
-let cached: { text: string; at: number } | null = null;
+let cached: { text: string; until: number } | null = null;
 
-/** The full system prompt. Rebuilt every 10 minutes so price changes show up. */
+/** The full system prompt. Rebuilt every 10 minutes so price and page changes show up. */
 export async function assistantSystemPrompt(): Promise<string> {
-  if (cached && Date.now() - cached.at < 10 * 60 * 1000) return cached.text;
-  const knowledge = await buildKnowledge();
+  if (cached && Date.now() < cached.until) return cached.text;
+  const [facts, pages] = await Promise.all([buildKnowledge(), websitePages()]);
+  let knowledge = `${facts}\n# Website pages (current text of cesessentials.com)\n\n${pages.text}\n`;
   for (const name of PARTNER_NAMES) {
-    if (knowledge.toLowerCase().includes(name.toLowerCase())) throw new Error(`Chat knowledge would expose a partner name: ${name}`);
+    if (knowledge.toLowerCase().includes(name.toLowerCase())) {
+      console.error(`chat: partner name found in website text and removed: ${name}`);
+      knowledge = scrubPartnerNames(knowledge);
+    }
   }
   const text = `${RULES}\n\n<knowledge>\n${knowledge}</knowledge>`;
-  cached = { text, at: Date.now() };
+  cached = { text, until: Date.now() + (pages.complete ? 10 : 1) * 60 * 1000 };
   return text;
 }
 
