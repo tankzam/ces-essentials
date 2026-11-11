@@ -48,7 +48,7 @@ export default async function Page() {
         </div>
         <div className="rounded-2xl border border-line bg-white p-6">
           <p className="mb-1.5 text-sm text-subtle">Card on file</p>
-          <p className="mb-3 text-[22px] font-extrabold">{card ?? 'No card on file'}</p>
+          <p className="mb-3 text-[22px] font-extrabold">{sub?.provider === 'shopify' ? 'Saved in CES Marketplace' : (card ?? 'No card on file')}</p>
           {profile?.stripe_customer_id && <PortalButton />}
         </div>
       </div>

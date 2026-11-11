@@ -4,6 +4,7 @@ import { currentUser } from '@/lib/supabase/server';
 import { currentPlan } from '@/lib/plan';
 import { publicCatalog, planLabel } from '@/lib/catalog';
 import { money, formatDate } from '@/lib/money';
+import { shopifyAccountUrl } from '@/lib/shopify-billing';
 
 export const metadata = { title: 'My Plan — CES Essentials' };
 
@@ -55,7 +56,7 @@ export default async function Page() {
             Your last payment didn’t go through. <Link href="/member/billing" className="underline">Update your card</Link> to keep your services.
           </p>
         ) : (
-          <p className="text-[15px] text-muted">Renews {formatDate(sub.current_period_end)}.</p>
+          <p className="text-[15px] text-muted">{sub.provider === 'shopify' ? `Paid through ${formatDate(sub.current_period_end)}. Renews automatically each month.` : `Renews ${formatDate(sub.current_period_end)}.`}</p>
         )}
         {pending && !sub.cancel_at_period_end && (
           <p className="rounded-[10px] bg-amber-soft px-4 py-3.5 text-[15px] text-amber-ink">
@@ -64,6 +65,12 @@ export default async function Page() {
         )}
       </div>
 
+      {sub.provider === 'shopify' ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-6 sm:p-7">
+          <p className="text-[15px] text-muted">Your plan is billed through our secure CES Marketplace checkout. To change items, update your card, or cancel, open your CES Marketplace account. If you cancel, you keep access through the end of your paid month.</p>
+          <a href={shopifyAccountUrl()} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-12 items-center justify-center self-start rounded-[10px] bg-navy px-5 font-bold text-white">Manage my subscription</a>
+        </div>
+      ) : (
       <PlanManager
         catalog={catalog}
         currentIds={plan.items.map((i) => i.product_id)}
@@ -72,6 +79,7 @@ export default async function Page() {
         canChange={['active', 'trialing'].includes(sub.status)}
         accessEnds={formatDate(sub.current_period_end)}
       />
+      )}
     </>
   );
 }

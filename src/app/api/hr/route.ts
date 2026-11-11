@@ -8,6 +8,7 @@ import { stripe } from '@/lib/stripe';
 import { env } from '@/lib/env';
 import { syncSubscription } from '@/lib/fulfillment';
 import { formatDate } from '@/lib/money';
+import { shopifyAccountUrl } from '@/lib/shopify-billing';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300;
@@ -74,6 +75,7 @@ export async function POST(req: Request) {
       await resendWelcome(org, b.profileId);
       return NextResponse.json({ ok: true, message: 'Welcome email sent again.' });
     case 'portal': {
+      if ((await orgSubscription(org.id))?.provider === 'shopify') return NextResponse.json({ url: shopifyAccountUrl() });
       if (!org.stripe_customer_id) return fail('No billing account yet.', 409);
       const session = await stripe().billingPortal.sessions.create({
         customer: org.stripe_customer_id,
@@ -85,6 +87,7 @@ export async function POST(req: Request) {
     case 'plan': {
       const sub = await orgSubscription(org.id);
       if (!sub || sub.status !== 'active') return fail('Your plan can be changed once your payment is up to date.', 409);
+      if (sub.provider === 'shopify') return fail('Your company plan is billed through CES Marketplace. Email us to switch plans and we will update it for you.', 409);
       if (org.plan_product_id === b.plan) return fail('That is already your plan.');
       const { data: next } = await db.from('products').select('*').eq('id', b.plan).single();
       const { data: current } = await db.from('products').select('*').eq('id', org.plan_product_id ?? '').maybeSingle();

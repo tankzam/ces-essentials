@@ -12,6 +12,7 @@ export interface PlanState {
     past_due_since: string | null;
     pending_product_ids: string[] | null;
     pending_change_at: string | null;
+    provider: 'stripe' | 'shopify';
   };
   items: { product_id: string; stripe_subscription_item_id: string; unit_amount_cents: number; price_verified: boolean }[];
 }
@@ -21,7 +22,7 @@ export async function currentPlan(memberId: string): Promise<PlanState | null> {
   const db = admin();
   const { data: subscription } = await db
     .from('subscriptions')
-    .select('id, stripe_subscription_id, stripe_schedule_id, status, current_period_end, cancel_at_period_end, past_due_since, pending_product_ids, pending_change_at')
+    .select('id, stripe_subscription_id, stripe_schedule_id, status, current_period_end, cancel_at_period_end, past_due_since, pending_product_ids, pending_change_at, provider')
     .eq('member_id', memberId)
     .not('status', 'in', '(canceled,incomplete_expired)')
     .order('created_at', { ascending: false })

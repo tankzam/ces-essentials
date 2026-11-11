@@ -5,6 +5,7 @@ import { currentUser } from '@/lib/supabase/server';
 import { stripe } from '@/lib/stripe';
 import { resolveSelection, SelectionError } from '@/lib/catalog';
 import { currentPlan } from '@/lib/plan';
+import { shopifyAccountUrl } from '@/lib/shopify-billing';
 import { syncSubscription } from '@/lib/fulfillment';
 import { formatDate } from '@/lib/money';
 
@@ -25,6 +26,7 @@ export async function POST(req: Request) {
     return fail('Your plan can be changed once your payment is up to date.', 409);
   }
 
+  if (plan.subscription.provider === 'shopify') return NextResponse.json({ error: `Your plan is billed through CES Marketplace. Manage it at ${shopifyAccountUrl()}`, url: shopifyAccountUrl() }, { status: 409 });
   let next;
   try {
     next = await resolveSelection((await req.json().catch(() => ({}))).selection);

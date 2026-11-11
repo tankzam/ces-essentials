@@ -6,6 +6,7 @@ import { stripe } from '@/lib/stripe';
 import { env, STRIPE_SOURCE } from '@/lib/env';
 import { clientIp } from '@/lib/request';
 import { MIN_SEATS } from '@/lib/company';
+import { paymentProvider, shopifyCheckoutUrl, ShopifyNotReady } from '@/lib/shopify-billing';
 
 export const runtime = 'nodejs';
 
@@ -84,9 +85,19 @@ export async function POST(req: Request) {
     .single();
   if (!policy || policy.version !== b.policyVersion) return fail('Our refund policy wording was updated. Please reload the page.', 409);
 
+  const provider = await paymentProvider();
+  if (provider === 'shopify') {
+    try {
+      shopifyCheckoutUrl({ orderId: 'check', products: [product], quantity: MIN_SEATS, email: hr.email });
+    } catch (e) {
+      if (e instanceof ShopifyNotReady) return fail('Company checkout is being updated right now. Please try again in a little while.', 503);
+      throw e;
+    }
+  }
+
   const { data: org } = await db.from('organizations').select('*').eq('id', orgId).single();
   let customerId = org?.stripe_customer_id as string | null;
-  if (!customerId) {
+  if (provider === 'stripe' && !customerId) {
     customerId = (
       await stripe().customers.create({
         name: b.companyName,
@@ -108,6 +119,7 @@ export async function POST(req: Request) {
       items: [{ product_id: product.id, price_cents: product.price_cents, stripe_price_id: product.stripe_price_id, quantity: seats }],
       quantity: seats,
       expected_total_cents: product.price_cents * seats,
+      provider,
     })
     .select('id')
     .single();
@@ -123,11 +135,15 @@ export async function POST(req: Request) {
     user_agent: req.headers.get('user-agent'),
   });
 
+  if (provider === 'shopify') {
+    return NextResponse.json({ url: shopifyCheckoutUrl({ orderId: order.id, products: [product], quantity: seats, email: hr.email }) });
+  }
+
   const metadata = { source: STRIPE_SOURCE, order_id: order.id, organization_id: orgId, member_id: hr.id };
   const site = env.siteUrl();
   const session = await stripe().checkout.sessions.create({
     mode: 'subscription',
-    customer: customerId,
+    customer: customerId!,
     client_reference_id: order.id,
     payment_method_configuration: process.env.STRIPE_PAYMENT_METHOD_CONFIGURATION_ID || undefined,
     line_items: [{ price: product.stripe_price_id, quantity: seats }],

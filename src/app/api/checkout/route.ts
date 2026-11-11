@@ -6,6 +6,7 @@ import { stripe } from '@/lib/stripe';
 import { env, STRIPE_SOURCE } from '@/lib/env';
 import { resolveSelection, SelectionError } from '@/lib/catalog';
 import { clientIp } from '@/lib/request';
+import { paymentProvider, shopifyCheckoutUrl, ShopifyNotReady } from '@/lib/shopify-billing';
 
 export const runtime = 'nodejs';
 
@@ -97,9 +98,20 @@ export async function POST(req: Request) {
     return fail('Our refund policy wording was updated. Please reload the page and review it.', 409);
   }
 
+  // ── Which processor takes the payment (Admin can switch it).
+  const provider = await paymentProvider();
+  if (provider === 'shopify') {
+    try {
+      shopifyCheckoutUrl({ orderId: 'check', products: resolved.products, email: profile.email });
+    } catch (e) {
+      if (e instanceof ShopifyNotReady) return fail('Checkout is being updated right now. Please try again in a little while.', 503);
+      throw e;
+    }
+  }
+
   // ── Stripe customer, tagged for this site.
   let customerId = profile.stripe_customer_id as string | null;
-  if (!customerId) {
+  if (provider === 'stripe' && !customerId) {
     const customer = await stripe().customers.create({
       email: profile.email,
       name: profile.full_name,
@@ -119,6 +131,7 @@ export async function POST(req: Request) {
       product_ids: resolved.products.map((p) => p.id),
       items,
       expected_total_cents: resolved.totalCents,
+      provider,
     })
     .select('id')
     .single();
@@ -136,11 +149,15 @@ export async function POST(req: Request) {
   });
   if (acceptError) throw acceptError;
 
+  if (provider === 'shopify') {
+    return NextResponse.json({ url: shopifyCheckoutUrl({ orderId: order.id, products: resolved.products, email: profile.email }) });
+  }
+
   const metadata = { source: STRIPE_SOURCE, order_id: order.id, member_id: profile.id };
   const site = env.siteUrl();
   const session = await stripe().checkout.sessions.create({
     mode: 'subscription',
-    customer: customerId,
+    customer: customerId!,
     client_reference_id: order.id,
     // Payment methods shown come from the Stripe dashboard settings (card).
     payment_method_configuration: process.env.STRIPE_PAYMENT_METHOD_CONFIGURATION_ID || undefined,

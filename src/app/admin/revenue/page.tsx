@@ -2,6 +2,8 @@ import { requireAdminPage } from '@/lib/accounts';
 import { admin } from '@/lib/supabase/admin';
 import { allProducts } from '@/lib/catalog';
 import { money } from '@/lib/money';
+import { AdminAction } from '@/components/AdminAction';
+import { paymentProvider } from '@/lib/shopify-billing';
 
 export const metadata = { title: 'Orders & Revenue — CES Essentials Admin' };
 
@@ -12,6 +14,7 @@ export default async function Page() {
   const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString();
   const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
+  const provider = await paymentProvider();
   const [products, { data: subs }, { data: paid }] = await Promise.all([
     allProducts(),
     db
@@ -51,6 +54,18 @@ export default async function Page() {
   return (
     <>
       <h1 className="text-[32px] font-extrabold tracking-tight">Orders &amp; Revenue</h1>
+      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-white p-5">
+        <div>
+          <p className="text-sm text-subtle">Checkout goes through</p>
+          <p className="text-[22px] font-extrabold">{provider === 'shopify' ? 'Shopify (CES Marketplace)' : 'Stripe'}</p>
+          <p className="text-sm text-subtle">Applies to new purchases. Existing members keep billing where they signed up.</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {provider !== 'shopify' && <AdminAction body={{ action: 'set_provider', provider: 'shopify' }} confirm="Send all new checkouts through Shopify (CES Marketplace)?">Switch to Shopify</AdminAction>}
+          {provider !== 'stripe' && <AdminAction body={{ action: 'set_provider', provider: 'stripe' }} confirm="Send all new checkouts through Stripe?">Switch to Stripe</AdminAction>}
+          <AdminAction body={{ action: 'refresh_shopify_plans' }}>Check Shopify plans</AdminAction>
+        </div>
+      </div>
       <p className="text-muted">{monthName}</p>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {tiles.map((t) => (

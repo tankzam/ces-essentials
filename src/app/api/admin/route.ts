@@ -24,6 +24,8 @@ const Body = z.discriminatedUnion('action', [
   z.object({ action: z.literal('deactivate'), profileId: z.string().uuid() }),
   z.object({ action: z.literal('activate'), profileId: z.string().uuid() }),
   z.object({ action: z.literal('resend_emails'), profileId: z.string().uuid() }),
+  z.object({ action: z.literal('set_provider'), provider: z.enum(['stripe', 'shopify']) }),
+  z.object({ action: z.literal('refresh_shopify_plans') }),
   z.object({ action: z.literal('threshold'), value: z.number().int().min(0).max(100000) }),
   z.object({ action: z.literal('add_admin'), email: z.string().trim().toLowerCase().email(), fullName: z.string().trim().min(2).max(120) }),
   z.object({ action: z.literal('approve_request'), requestId: z.string().uuid() }),
@@ -60,7 +62,7 @@ export async function POST(req: Request) {
       if (!member) return fail('Member not found.', 404);
       let stopped = false;
       const plan = await currentPlan(member.id);
-      if (plan && !plan.subscription.cancel_at_period_end && ['active', 'trialing', 'past_due'].includes(plan.subscription.status)) {
+      if (plan && plan.subscription.provider === 'stripe' && !plan.subscription.cancel_at_period_end && ['active', 'trialing', 'past_due'].includes(plan.subscription.status)) {
         await stripe().subscriptions.update(plan.subscription.stripe_subscription_id, { cancel_at_period_end: true });
         stopped = true;
       }
@@ -68,6 +70,26 @@ export async function POST(req: Request) {
       await resyncMember(member.id);
       await logActivity(me, `deactivated ${member.email}${stopped ? ' (renewals stopped)' : ''}`, member.email);
       return NextResponse.json({ ok: true, message: `${member.email} is deactivated.${stopped ? ' Their plan won’t renew.' : ''}` });
+    }
+
+    case 'refresh_shopify_plans': {
+      const { syncShopifySellingPlans } = await import('@/lib/shopify-billing');
+      const plans = await syncShopifySellingPlans();
+      const missing = Object.entries(plans).filter(([, v]) => !v.startsWith('monthly')).map(([k]) => k);
+      await logActivity(me, 'refreshed Shopify subscription plans');
+      return NextResponse.json({ ok: missing.length === 0, message: missing.length ? `Still missing a monthly plan: ${missing.join(', ')}` : 'All products have a monthly Shopify plan.' }, { status: missing.length ? 409 : 200 });
+    }
+
+    case 'set_provider': {
+      if (b.provider === 'shopify') {
+        const { data: notReady } = await db.from('products').select('id').eq('active', true).or('shopify_variant_id.is.null,shopify_selling_plan_id.is.null');
+        if (notReady?.length) {
+          return fail(`Shopify isn't ready yet: ${notReady.map((p) => p.id).join(', ')} need a monthly subscription plan in Shopify. Set them up, then click "Check Shopify plans".`, 409);
+        }
+      }
+      await db.from('settings').update({ value: b.provider, updated_at: new Date().toISOString() }).eq('key', 'payment_provider');
+      await logActivity(me, `switched checkout to ${b.provider === 'shopify' ? 'Shopify (CES Marketplace)' : 'Stripe'}`);
+      return NextResponse.json({ ok: true, message: `New checkouts now go through ${b.provider === 'shopify' ? 'Shopify (CES Marketplace)' : 'Stripe'}. Existing members stay on what they signed up with.` });
     }
 
     case 'resend_emails': {

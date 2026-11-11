@@ -36,6 +36,16 @@ function authorized(req: Request): boolean {
 
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  // ?shopifyPlans=1: read the monthly selling plan on each product; ?shopifyWebhooks=1: register order webhooks.
+  if (new URL(req.url).searchParams.get('shopifyPlans')) {
+    const { syncShopifySellingPlans } = await import('@/lib/shopify-billing');
+    return NextResponse.json({ plans: await syncShopifySellingPlans() });
+  }
+  if (new URL(req.url).searchParams.get('shopifyWebhooks')) {
+    const { registerShopifyWebhooks } = await import('@/lib/shopify-billing');
+    return NextResponse.json({ webhooks: await registerShopifyWebhooks(`${env.siteUrl()}/api/shopify/webhook`) });
+  }
+
   // ?shopifyProducts=1: create/update the CES Essentials products in the Shopify store.
   if (new URL(req.url).searchParams.get('shopifyProducts')) {
     const { syncShopifyProducts } = await import('@/lib/shopify');

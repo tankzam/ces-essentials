@@ -3,6 +3,7 @@ import { admin } from '@/lib/supabase/admin';
 import { env, GRACE_PERIOD_MS } from '@/lib/env';
 import { deliverWaitingCodes, syncSubscription } from '@/lib/fulfillment';
 import { finishRemovals } from '@/lib/hr';
+import { refreshAllShopifySubscriptions } from '@/lib/shopify-billing';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -22,6 +23,7 @@ export async function GET(req: Request) {
   const { data: overdue } = await admin()
     .from('subscriptions')
     .select('stripe_subscription_id')
+    .eq('provider', 'stripe')
     .lt('past_due_since', cutoff)
     .is('access_paused_at', null);
 
@@ -32,6 +34,11 @@ export async function GET(req: Request) {
     } catch (e) {
       errors.push(`${s.stripe_subscription_id}: ${e instanceof Error ? e.message : e}`);
     }
+  }
+  try {
+    await refreshAllShopifySubscriptions(); // Shopify months that ran out without a renewal
+  } catch (e) {
+    errors.push(`shopify: ${e instanceof Error ? e.message : e}`);
   }
   try {
     await finishRemovals(); // employees whose last paid month has ended

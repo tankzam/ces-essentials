@@ -30,5 +30,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/stripe/webhook|api/cron|api/admin/setup-stripe).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/stripe/webhook|api/shopify/webhook|api/cron|api/admin/setup-stripe).*)'],
 };

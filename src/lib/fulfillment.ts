@@ -280,10 +280,14 @@ export async function resyncMember(memberId: string) {
   if (!member) return;
   const { data: subs } = await db
     .from('subscriptions')
-    .select('stripe_subscription_id')
+    .select('id, stripe_subscription_id, provider')
     .eq('member_id', memberId)
     .not('status', 'in', '(canceled,incomplete_expired)');
-  for (const s of subs ?? []) await syncSubscription(s.stripe_subscription_id);
+  const { refreshShopifySubscription } = await import('@/lib/shopify-billing');
+  for (const s of subs ?? []) {
+    if (s.provider === 'shopify') await refreshShopifySubscription(s.id);
+    else await syncSubscription(s.stripe_subscription_id);
+  }
   const { data: orgLinks } = await db
     .from('organization_members')
     .select('organization_id')
@@ -292,11 +296,12 @@ export async function resyncMember(memberId: string) {
   for (const o of orgLinks ?? []) {
     const { data: orgSub } = await db
       .from('subscriptions')
-      .select('stripe_subscription_id')
+      .select('id, stripe_subscription_id, provider')
       .eq('organization_id', o.organization_id)
       .not('status', 'in', '(canceled,incomplete_expired)')
       .maybeSingle();
-    if (orgSub) await syncSubscription(orgSub.stripe_subscription_id);
+    if (orgSub?.provider === 'shopify') await refreshShopifySubscription(orgSub.id);
+    else if (orgSub) await syncSubscription(orgSub.stripe_subscription_id);
   }
   const { data: manual } = await db
     .from('entitlements')

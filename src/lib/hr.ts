@@ -5,9 +5,11 @@ import { ensureAccount, setPasswordLink } from '@/lib/accounts';
 import { getMember, syncSubscription } from '@/lib/fulfillment';
 import { sendAccountInvite } from '@/lib/email';
 import { billedSeats } from '@/lib/company';
+import { refreshShopifySubscription } from '@/lib/shopify-billing';
 
 export interface OrgSub {
   id: string;
+  provider: 'stripe' | 'shopify';
   stripe_subscription_id: string;
   status: string;
   current_period_end: string | null;
@@ -18,7 +20,7 @@ export interface OrgSub {
 export async function orgSubscription(orgId: string): Promise<OrgSub | null> {
   const { data } = await admin()
     .from('subscriptions')
-    .select('id, stripe_subscription_id, status, current_period_end, cancel_at_period_end, keep_until')
+    .select('id, stripe_subscription_id, status, current_period_end, cancel_at_period_end, keep_until, provider')
     .eq('organization_id', orgId)
     .not('status', 'in', '(canceled,incomplete_expired)')
     .order('created_at', { ascending: false })
@@ -75,6 +77,8 @@ export async function updateSeats(orgId: string) {
     .eq('role', 'employee')
     .eq('status', 'active');
   const qty = billedSeats(count ?? 0);
+  // Shopify-billed companies: the seat count is changed in CES Marketplace, not here.
+  if (sub.provider === 'shopify') return;
   const s = await stripe().subscriptions.retrieve(sub.stripe_subscription_id);
   const item = s.items.data[0];
   if (!item || item.quantity === qty) return;
@@ -158,7 +162,9 @@ export async function addPeople(org: { id: string; name: string }, rows: NewPers
 
   if (added.length) {
     await updateSeats(org.id);
-    await syncSubscription(sub.stripe_subscription_id); // turns services on, assigns codes, sends setup emails
+    // turns services on, assigns codes, sends setup emails
+    if (sub.provider === 'shopify') await refreshShopifySubscription(sub.id);
+    else await syncSubscription(sub.stripe_subscription_id);
     const { data: product } = await db.from('organizations').select('products(name)').eq('id', org.id).single();
     const planName = ((Array.isArray(product?.products) ? product?.products[0] : product?.products) as { name?: string } | null)?.name?.replace(' (Company)', '');
     for (const a of added) await sendWelcome(org, a, planName);
@@ -220,6 +226,8 @@ export async function finishRemovals() {
   const orgs = [...new Set((data ?? []).map((d) => d.organization_id as string))];
   for (const orgId of orgs) {
     const sub = await orgSubscription(orgId);
-    if (sub) await syncSubscription(sub.stripe_subscription_id);
+    if (!sub) continue;
+    if (sub.provider === 'shopify') await refreshShopifySubscription(sub.id);
+    else await syncSubscription(sub.stripe_subscription_id);
   }
 }
