@@ -36,6 +36,12 @@ function authorized(req: Request): boolean {
 
 export async function POST(req: Request) {
   if (!authorized(req)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  // ?shopifyProducts=1: create/update the CES Essentials products in the Shopify store.
+  if (new URL(req.url).searchParams.get('shopifyProducts')) {
+    const { syncShopifyProducts } = await import('@/lib/shopify');
+    return NextResponse.json({ results: await syncShopifyProducts() });
+  }
+
   // ?shopifyCheck=1: confirm the CES Marketplace store connection (read-only).
   if (new URL(req.url).searchParams.get('shopifyCheck')) {
     const { shopifyConnectionCheck } = await import('@/lib/shopify');
