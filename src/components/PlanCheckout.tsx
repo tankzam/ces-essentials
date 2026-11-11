@@ -1,5 +1,7 @@
 'use client';
 
+import { IdentityFields, readIdentity } from '@/components/IdentityFields';
+import { fieldErrors as identityErrors, identitySchema } from '@/lib/identity';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Check } from '@/components/Check';
 import { cheaperPackage, DISCOUNT_CLUB, type PublicCatalog, type Selection } from '@/lib/catalog-shared';
@@ -31,7 +33,7 @@ export function PlanCheckout({
   const [picked, setPicked] = useState<string[]>([]);
   const [order, setOrder] = useState<Order>(null);
   const [agreed, setAgreed] = useState(false);
-  const [account, setAccount] = useState({ fullName: '', email: '', phone: '', password: '' });
+  const [account, setAccount] = useState({ email: '', phone: '', password: '' });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const fieldsRef = useRef<HTMLFieldSetElement>(null);
   const [busy, setBusy] = useState(false);
@@ -91,20 +93,21 @@ export function PlanCheckout({
     // Read what is actually in the boxes (browser autofill doesn't always update the page's copy).
     const box = fieldsRef.current;
     const val = (n: string) => (box?.querySelector<HTMLInputElement>(`[name="${n}"]`)?.value ?? '');
-    const current = { fullName: val('fullName'), phone: val('phone'), email: val('email'), password: val('password') };
+    const current = { phone: val('phone'), email: val('email'), password: val('password') };
     setAccount(current);
-    const errs: Record<string, string> = {};
-    if (current.fullName.trim().length < 2) errs.fullName = 'Enter your full name.';
+    const identity = readIdentity(box);
+    const checked = identitySchema({ adult: true }).safeParse(identity);
+    const errs: Record<string, string> = checked.success ? {} : identityErrors(checked.error);
     if (current.phone.replace(/\D/g, '').length < 7) errs.phone = 'Enter your phone number.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(current.email.trim())) errs.email = 'Enter a complete email address.';
     if (current.password.length < 8) errs.password = `Password needs at least 8 characters (you have ${current.password.length}).`;
     setFieldErrors(errs);
-    return { ok: Object.keys(errs).length === 0, current };
+    return { ok: Object.keys(errs).length === 0, current: { ...current, ...identity } };
   }
 
   async function pay() {
     if (!canPay || !selection) return;
-    let acct = account;
+    let acct: Record<string, string> = account;
     if (!signedInEmail) {
       const { ok, current } = checkAccount();
       if (!ok) {
@@ -279,11 +282,7 @@ export function PlanCheckout({
               <legend className="mb-3 text-[15px] text-muted">
                 Create your account. Already a member? <a href="/login" className="font-semibold text-navy underline">Log in</a>.
               </legend>
-              <label className="flex flex-col gap-1.5 text-sm font-semibold">
-                Full name
-                <input className={field} autoComplete="name" name="fullName" aria-invalid={!!fieldErrors.fullName} value={account.fullName} onChange={(e) => { setAccount({ ...account, fullName: e.target.value }); if (fieldErrors.fullName) setFieldErrors({ ...fieldErrors, fullName: '' }); }} />
-                {fieldErrors.fullName && <span role="alert" className="font-semibold text-danger">{fieldErrors.fullName}</span>}
-              </label>
+              <IdentityFields errors={fieldErrors} onEdit={(n) => fieldErrors[n] && setFieldErrors({ ...fieldErrors, [n]: '' })} />
               <label className="flex flex-col gap-1.5 text-sm font-semibold">
                 Phone
                 <input className={field} type="tel" autoComplete="tel" name="phone" aria-invalid={!!fieldErrors.phone} value={account.phone} onChange={(e) => { setAccount({ ...account, phone: e.target.value }); if (fieldErrors.phone) setFieldErrors({ ...fieldErrors, phone: '' }); }} />

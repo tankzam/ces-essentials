@@ -141,7 +141,7 @@ export async function addPeople(org: { id: string; name: string }, rows: NewPers
   for (const r of ready) {
     const name = `${r.firstName} ${r.lastName}`.trim();
     try {
-      const acct = await ensureAccount({ email: r.email, fullName: name, organizationId: org.id });
+      const acct = await ensureAccount({ email: r.email, fullName: name, organizationId: org.id, extra: { first_name: r.firstName, last_name: r.lastName } });
       const { data: prev } = await db
         .from('organization_members')
         .select('status')

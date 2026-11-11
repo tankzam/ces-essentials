@@ -16,7 +16,8 @@ export const maxDuration = 120;
 const Body = z.discriminatedUnion('action', [
   z.object({
     action: z.literal('manual_activate'),
-    fullName: z.string().trim().min(2).max(120),
+    firstName: z.string().trim().min(1).max(60),
+    lastName: z.string().trim().min(1).max(60),
     email: z.string().trim().toLowerCase().email(),
     phone: z.string().trim().max(30).optional(),
     productIds: z.array(z.string()).min(1).max(10),
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
       const products = (await allProducts()).filter((p) => b.productIds.includes(p.id) && p.kind !== 'company_package');
       if (products.length !== b.productIds.length) return fail('Pick a plan or items.');
       if (products.some((p) => p.kind === 'package') && products.length > 1) return fail('Pick one plan, or à la carte items, not both.');
-      const acct = await ensureAccount({ email: b.email, fullName: b.fullName, phone: b.phone });
+      const acct = await ensureAccount({ email: b.email, fullName: `${b.firstName} ${b.lastName}`, phone: b.phone, extra: { first_name: b.firstName, last_name: b.lastName } });
       const member = await getMember(acct.id);
       if (!member) return fail('Could not create the account.', 500);
       await applyEntitlements(member, { subscriptionRowId: null, source: 'manual', organizationId: null }, servicesFor(products), 'active');

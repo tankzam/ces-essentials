@@ -7,7 +7,7 @@ export default function Page() {
   return (
     <LegalPage
       title="Terms of Service"
-      date="November 10, 2026"
+      date="November 11, 2026"
       intro={
         <>
           <p>
@@ -68,8 +68,13 @@ export default function Page() {
           body: (
             <>
               <p>
-                You must be at least 18 years old to buy a plan. Give us accurate information and keep it current. Keep your password private; you are
-                responsible for activity in your account.
+                You must be at least 18 years old to buy a plan. Give us accurate information and keep it current, including your legal first and
+                last name, date of birth, mailing address, email, and phone number. We may ask you to complete or update these details before you can
+                use your member area. Keep your password private; you are responsible for activity in your account.
+              </p>
+              <p>
+                Each account gets a <strong>member ID</strong> (for example, CES-100001). It identifies your membership, never changes, and may not
+                be transferred. Please give it when you contact us.
               </p>
               <p>
                 <strong>Register every service with the same email you used for your CES Essentials account.</strong> Providers match your

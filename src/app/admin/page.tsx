@@ -1,3 +1,4 @@
+import { formatMemberId, parseMemberId } from '@/lib/identity';
 import Link from 'next/link';
 import { AdminAction } from '@/components/AdminAction';
 import { ManualActivate } from '@/components/ManualActivate';
@@ -17,9 +18,11 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
   const pageNo = Math.max(1, Number(page) || 1);
   const db = admin();
 
-  let query = db.from('profiles').select('id, full_name, email, access_disabled, role, organization_id', { count: 'exact' }).order('created_at', { ascending: false });
+  let query = db.from('profiles').select('id, full_name, email, access_disabled, role, organization_id, member_number', { count: 'exact' }).order('created_at', { ascending: false });
   const term = q.trim().replace(/[%,()]/g, '');
-  if (term) query = query.or(`email.ilike.%${term}%,full_name.ilike.%${term}%`);
+  const idNo = parseMemberId(term);
+  if (idNo) query = query.eq('member_number', idNo);
+  else if (term) query = query.or(`email.ilike.%${term}%,full_name.ilike.%${term}%`);
   const { data: profiles, count } = await query.range((pageNo - 1) * PAGE, pageNo * PAGE - 1);
   const ids = (profiles ?? []).map((p) => p.id);
 
@@ -99,7 +102,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
       <form className="flex flex-col gap-3 sm:flex-row sm:items-end" action="/admin">
         <label className="flex flex-1 flex-col gap-1.5 text-sm font-semibold">
           Search members
-          <input name="q" type="search" defaultValue={q} placeholder="Name or email" className="min-h-12 rounded-lg border border-[#C8C7BF] bg-white px-3 text-base" />
+          <input name="q" type="search" defaultValue={q} placeholder="Name, email, or member ID" className="min-h-12 rounded-lg border border-[#C8C7BF] bg-white px-3 text-base" />
         </label>
         <button className="min-h-12 rounded-[10px] bg-navy px-5 font-bold text-white">Search</button>
       </form>
@@ -112,6 +115,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
               <p className="font-semibold">{m.full_name}{m.role === 'admin' && <span className="ml-2 rounded bg-navy px-1.5 py-0.5 text-xs font-bold text-white">ADMIN</span>}</p>
               <span className={`shrink-0 rounded-full px-2.5 py-1 text-[13px] font-bold ${statusClass(m)}`}>{m.status}</span>
             </div>
+            <p className="text-sm font-semibold text-subtle">{formatMemberId(m.member_number)}</p>
             <p className="break-all text-[15px] text-muted">{m.email}</p>
             <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[15px]">
               <dt className="text-subtle">Plan</dt><dd>{m.plan}</dd>
@@ -141,7 +145,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<{ q
               <tr key={m.id} className="border-t border-line align-top">
                 <td className="px-4 py-3.5">
                   <p className="font-semibold">{m.full_name}{m.role === 'admin' && <span className="ml-2 rounded bg-navy px-1.5 py-0.5 text-xs font-bold text-white">ADMIN</span>}</p>
-                  <p className="text-sm text-subtle">{m.email}</p>
+                  <p className="text-sm text-subtle">{formatMemberId(m.member_number)} · {m.email}</p>
                 </td>
                 <td className="px-4 py-3.5">{m.plan}</td>
                 <td className="px-4 py-3.5">{m.price}</td>

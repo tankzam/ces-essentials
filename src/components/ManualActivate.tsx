@@ -10,7 +10,7 @@ const field = 'min-h-12 w-full rounded-lg border border-[#C8C7BF] bg-white px-3 
 export function ManualActivate({ products }: { products: P[] }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ fullName: '', email: '', phone: '' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', phone: '' });
   const [pick, setPick] = useState<string[]>(['all_in_one']);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -37,7 +37,7 @@ export function ManualActivate({ products }: { products: P[] }) {
     setMsg({ ok: res.ok, text: data.message ?? data.error ?? 'Something went wrong.' });
     setBusy(false);
     if (res.ok) {
-      setForm({ fullName: '', email: '', phone: '' });
+      setForm({ firstName: '', lastName: '', email: '', phone: '' });
       router.refresh();
     }
   }
@@ -49,9 +49,10 @@ export function ManualActivate({ products }: { products: P[] }) {
       </button>
       {open && (
         <form onSubmit={submit} className="flex w-full max-w-[640px] flex-col gap-4 rounded-2xl border border-line bg-white p-5">
-          <p className="text-sm text-subtle">Gives access without payment (no Stripe charge). They get a welcome email to set their password, plus the usual setup emails.</p>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <label className="flex flex-col gap-1.5 text-sm font-semibold">Full name<input required className={field} value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} /></label>
+          <p className="text-sm text-subtle">Gives access without payment (no Stripe charge). They get a welcome email with their member ID to set their password, plus the usual setup emails. They add their date of birth and address the first time they log in.</p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1.5 text-sm font-semibold">First name<input required className={field} value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} /></label>
+            <label className="flex flex-col gap-1.5 text-sm font-semibold">Last name<input required className={field} value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} /></label>
             <label className="flex flex-col gap-1.5 text-sm font-semibold">Email<input required type="email" className={field} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label>
             <label className="flex flex-col gap-1.5 text-sm font-semibold">Phone<input type="tel" className={field} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} /></label>
           </div>

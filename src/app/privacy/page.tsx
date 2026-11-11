@@ -6,6 +6,7 @@ export default function Page() {
   return (
     <LegalPage
       title="Privacy Policy"
+      date="November 11, 2026"
       intro={
         <p>
           This Privacy Policy explains how {COMPANY} (&quot;CES,&quot; &quot;we,&quot; &quot;us&quot;) collects, uses, and shares information when
@@ -19,7 +20,8 @@ export default function Page() {
             <>
               <p><strong>Information you give us:</strong></p>
               <ul>
-                <li>Account details: your name, email address, phone number, and password (stored only in encrypted form).</li>
+                <li>Account details: your first and last name, date of birth, mailing address, email address, phone number, and password (stored only in encrypted form).</li>
+                <li>Your member ID, a number we assign to your account so we can identify you when you contact us. It never changes.</li>
                 <li>Your plan and the benefits you choose.</li>
                 <li>For company plans: company name, HR contact details, and the names and emails of employees an HR contact adds.</li>
                 <li>Messages and requests you send us, such as the For Businesses form.</li>
@@ -50,7 +52,8 @@ export default function Page() {
           heading: 'How we use information',
           body: (
             <ul>
-              <li>to create and manage your account and membership;</li>
+              <li>to create and manage your account and membership, and to identify you by your member ID;</li>
+              <li>to confirm you are 18 or older and to confirm your identity and eligibility with benefit providers;</li>
               <li>to process payments, renewals, and plan changes;</li>
               <li>to turn on your benefits and show your setup steps and activation codes;</li>
               <li>to send emails about your account, such as welcome and setup emails, receipts, payment notices, and cancellation confirmations;</li>
@@ -68,11 +71,12 @@ export default function Page() {
               <p>We do not sell your personal information. We share it only as needed to run the Service:</p>
               <ul>
                 <li><strong>Benefit providers:</strong> the companies that deliver the benefits on your plan may receive the details needed to
-                  enroll you and confirm your membership, such as your name and email address.</li>
+                  enroll you and confirm your membership, such as your name, email address, and, where a provider needs it to confirm eligibility or
+                  identity, your date of birth and mailing address.</li>
                 <li><strong>Service providers:</strong> companies that help us operate, including payment processing, website hosting, database
                   hosting, and email delivery. They may use your information only to provide their services to us.</li>
                 <li><strong>Your organization:</strong> if you are on a company plan, your HR contact can see your name, email, membership status,
-                  and whether you have logged in. They cannot see which benefits you use.</li>
+                  and whether you have logged in. They cannot see your date of birth, your address, or which benefits you use.</li>
                 <li><strong>Legal reasons:</strong> when required by law, or to protect the rights, safety, and property of CES, our members, or
                   others.</li>
                 <li><strong>Business changes:</strong> if CES is involved in a merger, acquisition, or sale of assets, as part of that transaction.</li>

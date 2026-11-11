@@ -21,6 +21,8 @@ export async function ensureAccount(opts: {
   fullName: string;
   phone?: string | null;
   organizationId?: string | null;
+  /** Extra profile columns (first/last name, birth date, address). */
+  extra?: Record<string, string | null>;
 }): Promise<{ id: string; created: boolean }> {
   const db = admin();
   const email = opts.email.trim().toLowerCase();
@@ -35,6 +37,7 @@ export async function ensureAccount(opts: {
     full_name: opts.fullName,
     phone: opts.phone ?? null,
     organization_id: opts.organizationId ?? null,
+    ...(opts.extra ?? {}),
   });
   if (error) {
     await db.auth.admin.deleteUser(created.data.user.id);

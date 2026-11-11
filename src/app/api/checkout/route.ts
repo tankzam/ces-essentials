@@ -6,6 +6,7 @@ import { stripe } from '@/lib/stripe';
 import { env, STRIPE_SOURCE } from '@/lib/env';
 import { resolveSelection, SelectionError } from '@/lib/catalog';
 import { clientIp } from '@/lib/request';
+import { ageOn, identityColumns, identitySchema, profileComplete } from '@/lib/identity';
 import { paymentProvider, shopifyCheckoutUrl, ShopifyNotReady } from '@/lib/shopify-billing';
 
 export const runtime = 'nodejs';
@@ -14,9 +15,8 @@ const Body = z.object({
   selection: z.union([z.object({ plan: z.string() }), z.object({ addons: z.array(z.string()).max(10) })]),
   agreed: z.literal(true),
   policyVersion: z.number().int(),
-  account: z
-    .object({
-      fullName: z.string().trim().min(2).max(120),
+  account: identitySchema({ adult: true })
+    .extend({
       email: z.string().trim().toLowerCase().email().max(200),
       phone: z.string().trim().min(7).max(30),
       password: z.string().min(8).max(200),
@@ -30,7 +30,8 @@ export async function POST(req: Request) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     const agreed = parsed.error.issues.some((i) => i.path[0] === 'agreed');
-    return fail(agreed ? 'Please check the box to agree to the refund policy.' : 'Please fill in every field.');
+    const detail = parsed.error.issues.find((i) => i.path[0] === 'account' && i.message && !i.message.startsWith('Invalid'));
+    return fail(agreed ? 'Please check the box to agree to the refund policy.' : detail?.message ?? 'Please fill in every field.');
   }
   const { selection, account, policyVersion } = parsed.data;
   const db = admin();
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
   // ── Who is buying: the signed-in member, or a new account created now.
   let { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    if (!account) return fail('Please enter your name, email, phone, and a password.');
+    if (!account) return fail('Please enter your name, date of birth, address, email, phone, and a password.');
     const { data: exists } = await db.from('profiles').select('id').eq('email', account.email).maybeSingle();
     if (exists) return fail('This email already has an account. Log in first, then check out.', 409);
 
@@ -47,14 +48,14 @@ export async function POST(req: Request) {
       email: account.email,
       password: account.password,
       email_confirm: true,
-      user_metadata: { full_name: account.fullName },
+      user_metadata: { full_name: `${account.firstName} ${account.lastName}` },
     });
     if (created.error || !created.data.user) {
       return fail(created.error?.message.includes('already') ? 'This email already has an account. Log in first, then check out.' : 'We could not create your account. Please try again.', 409);
     }
     const { error: profileError } = await db.from('profiles').insert({
       id: created.data.user.id,
-      full_name: account.fullName,
+      ...identityColumns(account),
       email: account.email,
       phone: account.phone,
     });
@@ -69,6 +70,8 @@ export async function POST(req: Request) {
 
   const { data: profile } = await db.from('profiles').select('*').eq('id', user.id).single();
   if (!profile) return fail('Your account is missing details. Please contact support.', 500);
+  if (!profileComplete(profile)) return fail('Please finish your profile first (name, date of birth, and address). Go to your member area, then come back to check out.', 409);
+  if (ageOn(profile.date_of_birth) < 18) return fail('You must be 18 or older to buy a plan.', 403);
 
   // One plan per member. Existing members change items from My Plan.
   const { data: live } = await db

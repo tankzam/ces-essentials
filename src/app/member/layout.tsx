@@ -4,14 +4,18 @@ import { MemberNav } from '@/components/MemberNav';
 import { logout } from '@/app/(auth)/actions';
 import { currentUser } from '@/lib/supabase/server';
 import { admin } from '@/lib/supabase/admin';
+import { DetailsForm } from '@/components/AccountForms';
+import { formatMemberId, IDENTITY_COLUMNS, profileComplete } from '@/lib/identity';
+import { identityDefaults } from '@/lib/profile-defaults';
 
 export const dynamic = 'force-dynamic';
 
 export default async function MemberLayout({ children }: { children: React.ReactNode }) {
   const user = await currentUser();
   if (!user) redirect('/login');
-  const { data: profile } = await admin().from('profiles').select('full_name, email, role').eq('id', user.id).single();
-  const first = profile?.full_name?.split(' ')[0] ?? '';
+  const { data: profile } = await admin().from('profiles').select(`full_name, email, role, phone, ${IDENTITY_COLUMNS}`).eq('id', user.id).single();
+  const first = profile?.first_name ?? profile?.full_name?.split(' ')[0] ?? '';
+  const complete = profileComplete(profile);
 
   return (
     <div className="min-h-screen bg-cream">
@@ -20,6 +24,7 @@ export default async function MemberLayout({ children }: { children: React.React
           <Logo />
           <div className="flex items-center gap-4 text-[15px]">
             <span className="hidden text-mist sm:inline">{profile?.email}</span>
+            {profile?.member_number && <span className="rounded-md bg-navy-2 px-2.5 py-1 font-semibold text-amber">{formatMemberId(profile.member_number)}</span>}
             <form action={logout}>
               <button className="min-h-11 rounded-lg border border-[#3A3D5C] px-4 font-semibold">Log out</button>
             </form>
@@ -28,7 +33,22 @@ export default async function MemberLayout({ children }: { children: React.React
       </header>
       <div className="mx-auto flex max-w-[1240px] flex-col gap-7 px-4 pb-16 pt-8 sm:px-6 lg:flex-row lg:items-start">
         <MemberNav greeting={first ? `Hi, ${first}` : 'Member area'} isAdmin={profile?.role === 'admin'} />
-        <main className="flex min-w-0 flex-1 flex-col gap-6">{children}</main>
+        <main className="flex min-w-0 flex-1 flex-col gap-6">
+          {complete ? (
+            children
+          ) : (
+            <section className="flex flex-col gap-5 rounded-2xl border border-line bg-white p-6 sm:p-8">
+              <div className="flex flex-col gap-2">
+                <h1 className="text-[28px] font-extrabold tracking-tight">Please finish your profile</h1>
+                <p className="text-[17px] leading-relaxed text-muted">
+                  We now keep your full name, date of birth, and mailing address on every membership. This takes a minute, and you only do it once.
+                  Your member ID is <strong className="text-navy">{formatMemberId(profile?.member_number)}</strong>.
+                </p>
+              </div>
+              <DetailsForm defaults={identityDefaults(profile)} phone={profile?.phone ?? ''} submitLabel="Save and continue" />
+            </section>
+          )}
+        </main>
       </div>
     </div>
   );

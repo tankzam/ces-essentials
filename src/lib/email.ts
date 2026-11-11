@@ -62,6 +62,13 @@ function button(href: string, label: string) {
   return `<a href="${esc(href)}" style="display:inline-block;padding:14px 22px;border-radius:10px;background:#F0A83C;color:#0B0C1B;font-weight:700;text-decoration:none">${esc(label)}</a>`;
 }
 
+/** "Your member ID: CES-100001" line for welcome emails. */
+async function memberIdLine(profileId: string): Promise<string> {
+  const { data } = await admin().from('profiles').select('member_number').eq('id', profileId).maybeSingle();
+  if (!data?.member_number) return '';
+  return `<p style="margin:0 0 16px;padding:12px 16px;background:#F6F5F1;border-radius:10px"><strong>Your member ID:</strong> CES-${data.member_number}<br><span style="font-size:14px;color:#5A5C6E">Give this number when you contact us.</span></p>`;
+}
+
 function layout(body: string) {
   const site = env.siteUrl();
   return `<!doctype html><html><body style="margin:0;background:#F6F5F1;font-family:Inter,Arial,sans-serif;color:#0B0C1B">
@@ -93,6 +100,7 @@ export async function sendWelcome(m: { id: string; email: string; name: string }
     memberId: m.id,
     subject: 'Welcome to CES Essentials',
     html: layout(`<h1 style="margin:0 0 12px;font-size:24px">Welcome, ${esc(m.name.split(' ')[0] || m.name)}!</h1>
+${await memberIdLine(m.id)}
 ${registerNotice(m.email)}
 <p>Your ${esc(planName)} membership is active. Log in to your member area to see every service you bought, your setup steps, and your activation codes.</p>
 <p style="margin:0 0 6px"><strong>Your login:</strong> ${esc(m.email)}</p>
@@ -230,6 +238,7 @@ export async function sendAccountInvite(
     memberId: m.id,
     subject: context.companyName ? `${context.companyName} gave you CES Essentials` : 'Your CES Essentials membership is ready',
     html: layout(`<h1 style="margin:0 0 12px;font-size:24px">Welcome${m.name ? `, ${esc(m.name.split(' ')[0])}` : ''}!</h1>
+${await memberIdLine(m.id)}
 ${registerNotice(m.email)}
 <p>${intro}</p>
 <p>Create your password to open your member area, where you'll find every service, your setup steps, and your activation codes.</p>
