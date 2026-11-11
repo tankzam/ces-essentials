@@ -139,7 +139,7 @@ export default function Page() {
             <p>
               If your employer or organization provides CES Essentials, your access depends on your organization keeping you on its plan. When your
               organization removes you, your access ends at the end of that billing month. Organizations agree to company pricing and billing terms
-              when they sign up, including a 10-person minimum, and are responsible for their own monthly payment.
+              when they sign up, including a 5-person minimum, and are responsible for their own monthly payment.
             </p>
           ),
         },

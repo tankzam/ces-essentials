@@ -11,7 +11,7 @@ const Body = z.object({
   contactName: z.string().trim().min(2).max(120),
   email: z.string().trim().toLowerCase().email().max(200),
   phone: z.string().trim().min(7).max(30),
-  peopleRange: z.enum(['10–24', '25–49', '50–99', '100–249', '250+']),
+  peopleRange: z.enum(['5–9', '10–24', '25–49', '50–99', '100–249', '250+']),
   interest: z.enum(['Not sure yet', 'Starter', 'All-in-One']),
   notes: z.string().trim().max(2000).optional(),
   website: z.string().max(0).optional(), // honeypot: must stay empty

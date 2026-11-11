@@ -278,7 +278,7 @@ export async function sendCompanySignupLink(r: { id: string; company: string; co
     subject: `Your CES Essentials company pricing, ${r.company}`,
     html: layout(`<h1 style="margin:0 0 12px;font-size:22px">Your company pricing is ready</h1>
 <p>Hi ${esc(r.contact_name.split(' ')[0] || r.contact_name)}, thanks for your interest in CES Essentials for ${esc(r.company)}.</p>
-<p>Company pricing: <strong>Starter $15.99</strong> or <strong>All-in-One $39.99</strong> per person per month, with a 10-person minimum. Pick a plan, set up your HR login, and you can start adding employees right away.</p>
+<p>Company pricing: <strong>Starter $15.99</strong> or <strong>All-in-One $39.99</strong> per person per month, with a 5-person minimum. Pick a plan, set up your HR login, and you can start adding employees right away.</p>
 ${button(url, 'Open your private signup page')}
 <p style="margin-top:20px;font-size:14px;color:#5A5C6E">This link is private to your company. Please don't share it outside your team.</p>`),
   });

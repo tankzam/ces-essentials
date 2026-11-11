@@ -65,7 +65,7 @@ export async function orgPeople(orgId: string): Promise<Person[]> {
   });
 }
 
-/** Sets the Stripe quantity to the active head count (10 minimum). */
+/** Sets the Stripe quantity to the active head count (5 minimum). */
 export async function updateSeats(orgId: string) {
   const db = admin();
   const sub = await orgSubscription(orgId);

@@ -7,6 +7,7 @@ import { sendAccessPaused, sendCompanyWelcome, sendReceipt, sendWelcome } from '
 import { getSetting } from '@/lib/settings';
 import { shopifyGraphql } from '@/lib/shopify';
 import { GRACE_PERIOD_MS } from '@/lib/env';
+import { MIN_SEATS } from '@/lib/company';
 
 // Shopify (CES Marketplace) as the payment processor.
 //
@@ -164,7 +165,7 @@ export async function handleShopifyPaidOrder(order: ShopifyOrder) {
   for (const l of lines) {
     const p = byVariant.get(String(l.variant_id))!;
     const priceOk = Math.round(parseFloat(l.price) * 100) === p.price_cents && order.currency === 'USD';
-    const qtyOk = p.kind === 'company_package' ? l.quantity >= 10 : l.quantity === 1;
+    const qtyOk = p.kind === 'company_package' ? l.quantity >= MIN_SEATS : l.quantity === 1;
     if (!priceOk || !qtyOk) throw new Error(`Order ${order.name}: ${p.id} charged ${l.price} x${l.quantity}, expected ${(p.price_cents / 100).toFixed(2)}`);
     verified.push(p);
     if (p.kind === 'company_package') quantity = l.quantity;

@@ -29,7 +29,7 @@ export async function POST(req: Request) {
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     const agreed = parsed.error.issues.some((i) => i.path[0] === 'agreed');
-    return fail(agreed ? 'Please check the box to agree to the refund policy.' : 'Please fill in every field (minimum 10 people).');
+    return fail(agreed ? 'Please check the box to agree to the refund policy.' : 'Please fill in every field (minimum 5 people).');
   }
   const b = parsed.data;
   const db = admin();

@@ -24,7 +24,7 @@ export default function Page() {
             Give your team healthcare, legal help, and protection.
           </h1>
           <p className="max-w-[680px] text-lg leading-relaxed text-mist sm:text-[19px]">
-            Special company pricing for groups of 10 or more. One monthly bill, and you add or remove people anytime.
+            Special company pricing for groups of 5 or more. One monthly bill, and you add or remove people anytime.
           </p>
         </section>
       </header>

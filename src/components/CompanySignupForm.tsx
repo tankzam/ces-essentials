@@ -95,7 +95,7 @@ export function CompanySignupForm(props: {
       <section className={`${card} sm:flex-row sm:flex-wrap sm:items-center sm:justify-between`}>
         <div className="flex flex-col gap-1.5">
           <h2 className="text-xl font-bold">How many people to start?</h2>
-          <p className="text-sm text-subtle">Minimum 10. You can change this anytime from your dashboard.</p>
+          <p className="text-sm text-subtle">Minimum 5. You can change this anytime from your dashboard.</p>
         </div>
         <div className="flex items-center gap-3">
           <button type="button" aria-label="Fewer people" onClick={() => setSeats((n) => Math.max(MIN_SEATS, n - 1))} className="h-12 w-12 rounded-[10px] border border-navy text-[22px] font-bold">–</button>
@@ -138,7 +138,7 @@ export function CompanySignupForm(props: {
             <span>{chosen.name} · {billed} people</span>
             <span>{estimate}/mo</span>
           </div>
-          <p className="text-sm text-muted">Billed monthly for your active people, with a 10-person minimum. Your bill adjusts when you add or remove someone.</p>
+          <p className="text-sm text-muted">Billed monthly for your active people, with a 5-person minimum. Your bill adjusts when you add or remove someone.</p>
         </div>
         <label className="flex cursor-pointer items-start gap-3 text-[15px] leading-relaxed">
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-[22px] w-[22px] shrink-0 accent-navy" />

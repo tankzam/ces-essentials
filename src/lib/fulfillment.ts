@@ -5,6 +5,7 @@ import { stripe, idOf, toDate } from '@/lib/stripe';
 import { allProducts, servicesFor, type ProductRow } from '@/lib/catalog';
 import { getSettings } from '@/lib/settings';
 import { GRACE_PERIOD_MS, STRIPE_SOURCE } from '@/lib/env';
+import { MIN_SEATS } from '@/lib/company';
 import { sendAccessPaused, sendCodePoolAlert, sendServiceSetup, type SetupInfo } from '@/lib/email';
 
 export type AccessStatus = 'active' | 'grace' | 'paused' | 'ended';
@@ -135,7 +136,7 @@ export async function syncSubscription(stripeSubscriptionId: string): Promise<vo
       price.unit_amount === product.price_cents &&
       price.currency === product.currency &&
       price.recurring?.interval === 'month' &&
-      (orgId ? product.kind === 'company_package' && qty >= 10 : product.kind !== 'company_package' && qty === 1);
+      (orgId ? product.kind === 'company_package' && qty >= MIN_SEATS : product.kind !== 'company_package' && qty === 1);
     if (ok) verified.push(product);
     return [{
       subscription_id: subscriptionRowId,

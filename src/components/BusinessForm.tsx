@@ -53,8 +53,8 @@ export function BusinessForm() {
         <label className={label}>Phone<input name="phone" type="tel" required className={field} autoComplete="tel" /></label>
         <label className={label}>
           How many people?
-          <select name="peopleRange" className={field} defaultValue="10–24">
-            {['10–24', '25–49', '50–99', '100–249', '250+'].map((o) => <option key={o}>{o}</option>)}
+          <select name="peopleRange" className={field} defaultValue="5–9">
+            {['5–9', '10–24', '25–49', '50–99', '100–249', '250+'].map((o) => <option key={o}>{o}</option>)}
           </select>
         </label>
         <label className={label}>
@@ -66,7 +66,7 @@ export function BusinessForm() {
       </div>
       <label className={label}>Anything else? (optional)<textarea name="notes" rows={3} className="rounded-lg border border-[#C8C7BF] p-3 text-base" /></label>
       <input name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
-      <p className="text-sm text-subtle">Company plans require at least 10 people.</p>
+      <p className="text-sm text-subtle">Company plans require at least 5 people.</p>
       {error && <p role="alert" className="rounded-lg bg-danger-soft px-4 py-3 font-semibold text-[#7A1F15]">{error}</p>}
       <button disabled={busy} className="min-h-14 rounded-[10px] bg-amber text-lg font-extrabold text-navy disabled:opacity-60">
         {busy ? 'Sending…' : 'Request company pricing'}
