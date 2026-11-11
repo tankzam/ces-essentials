@@ -1,0 +1,132 @@
+import 'server-only';
+import { allProducts } from '@/lib/catalog';
+import { BENEFIT_ORDER, benefitServices, type Section } from '@/lib/benefits';
+import { MIN_SEATS } from '@/lib/company';
+import { money } from '@/lib/money';
+import { admin } from '@/lib/supabase/admin';
+import { env } from '@/lib/env';
+
+// Everything the website chat knows comes from here: live prices from the
+// products table, the public Benefits Guide (no partner names), and our policies.
+
+const PARTNER_NAMES = ['MiSalud', 'IdentityIQ', 'Bitdefender', 'Legal Club', 'Working Advantage'];
+
+function sectionText(s: Section): string {
+  const lines = [`### ${s.title}`];
+  if (s.intro) lines.push(s.intro);
+  if (s.type === 'numbered' || s.type === 'cards') for (const i of s.items) lines.push(`- ${i.title}${i.text.startsWith(' ') || i.text.startsWith(':') || i.text.startsWith(',') ? i.text : `: ${i.text}`}`);
+  if (s.type === 'bullets') for (const i of s.items) lines.push(`- ${i}`);
+  if (s.type === 'steps') for (const i of s.items) lines.push(`${i.n}. ${i.text}`);
+  if (s.type === 'table') for (const r of s.rows) lines.push(`- ${r.name}: member price ${r.member} (regular ${r.regular})`);
+  if (s.note) lines.push(`Note: ${s.note}`);
+  return lines.join('\n');
+}
+
+async function buildKnowledge(): Promise<string> {
+  const [products, services] = await Promise.all([
+    allProducts(),
+    admin().from('services').select('id, name, public_description, sort_order').order('sort_order'),
+  ]);
+  if (services.error) throw services.error;
+  const serviceName = new Map(services.data.map((s) => [s.id, s.name as string]));
+  const live = products.filter((p) => p.active);
+  const includes = (p: (typeof live)[number]) =>
+    [...p.product_services.map((s) => serviceName.get(s.service_id) ?? s.service_id), 'Discount Club (free with any purchase)']
+      .filter((v, i, a) => a.indexOf(v) === i)
+      .join(', ');
+
+  const packages = live.filter((p) => p.public && p.kind === 'package');
+  const addons = live.filter((p) => p.public && p.kind === 'addon');
+  const company = live.filter((p) => p.kind === 'company_package');
+  const regularFor = (id: string) => live.find((p) => p.id === id.replace(/_company$/, ''));
+
+  const guide = benefitServices('public');
+  const benefitText = BENEFIT_ORDER.map((id) => {
+    const b = guide[id];
+    return [`## ${b.name} (${b.group})`, b.lead, ...b.sections.map(sectionText)].join('\n\n');
+  }).join('\n\n');
+
+  return `# CES Essentials: product and price facts
+
+Website: ${env.siteUrl()}
+Company: Creating Empowerment Solutions LLC (Wyoming). Contact email: abryant@tbfremail.com (Contact page: ${env.siteUrl()}/contact).
+
+## Plans for individuals and families (monthly, U.S. dollars)
+${packages.map((p) => `- ${p.name}: ${money(p.price_cents)} per month. Includes: ${includes(p)}.`).join('\n')}
+
+## Build your own (à la carte, each billed monthly)
+${addons.map((p) => `- ${p.name}: ${money(p.price_cents)} per month. Includes: ${includes(p)}.`).join('\n')}
+- Any combination can be picked. If the picks cost more than a package that covers them, the website shows a "Save $X" tip pointing to that package.
+- The Discount Club is free with any purchase; it cannot be bought on its own.
+
+## Company plans (businesses and organizations)
+${company.map((p) => {
+    const reg = regularFor(p.id);
+    return `- ${p.name}: ${money(p.price_cents)} per person per month${reg ? ` (regular price ${money(reg.price_cents)})` : ''}. Includes: ${includes(p)}.`;
+  }).join('\n')}
+- Minimum ${MIN_SEATS} people. The company is billed monthly for its active people, with a ${MIN_SEATS}-person minimum (fewer than ${MIN_SEATS} people are billed as ${MIN_SEATS}).
+- One plan for the whole team (Starter or All-in-One). À la carte items are not offered as company plans.
+- How to sign up: fill out the form on the For Businesses page (${env.siteUrl()}/for-businesses). CES reviews it and emails a private signup link with company pricing. The company then picks the plan and number of people, sets up an HR login, and pays with a company card.
+- HR dashboard: upload one spreadsheet of names and emails; each person gets their own login and welcome email. Add or remove people anytime; the bill adjusts. A removed person keeps access to the end of that billing month.
+- Companies sign a company agreement at signup (including not going around CES to deal directly with its providers).
+
+## How buying works (individuals)
+1. Pick a plan, or build your own on the homepage.
+2. Fill in your details, check the box confirming you understand the no-refund policy, and pay securely by card.
+3. Your member area unlocks right away with everything you bought, including activation codes and setup steps. You also get a welcome email and setup emails.
+- Register every service with the same email you used for your CES Essentials account. Providers match you by that email.
+- You must be 18 or older to buy.
+
+## Billing and policies
+- All plans are monthly subscriptions that renew automatically until canceled. Sales tax is not added.
+- Cancel anytime from the member area (My Plan). No future charges; access lasts through the end of the month already paid for.
+- No refunds once a billing month has started, including partial months or unused benefits.
+- Switching plans: anytime in the member area. Moving to a more expensive plan starts right away (prorated difference charged). Moving to a cheaper plan starts on the next billing date.
+- Failed payment: access stays on for 2 days while the charge is retried, then pauses until payment goes through.
+- Activation codes are for personal use only and are never reused or shared.
+- CES Essentials is not insurance and is not a substitute for health insurance. Virtual healthcare is not for emergencies: call 911.
+- To change your account email, email us.
+
+## Speed of access
+- Most services are ready right after payment.
+- Family Legal + Tax Prep takes 24 to 48 hours to become active.
+- Credit Monitoring + VPN: one activation code, shown in the member area, activates both.
+- Healthcare covers you plus up to 3 more people, at any address, with a $0 copay.
+
+# Benefit details (public Benefits Guide)
+
+${benefitText}
+`;
+}
+
+const RULES = `You are the CES Essentials website assistant. You answer questions from shoppers, members, and businesses about CES Essentials plans, prices, what each benefit includes, how to sign up, company plans, and billing policies.
+
+How to answer:
+- Use only the facts in the knowledge section below. Prices there are current; quote them exactly. Never invent a price, discount, benefit, or policy. If the answer is not in the facts, say you don't have that detail and suggest emailing abryant@tbfremail.com or visiting the Contact page.
+- Never name the companies that provide the benefits, even if asked directly or if the visitor names one. Say the services come from independent, licensed partner providers, and that members see setup details in their member area.
+- Help people compare. When someone lists what they want, add up the à la carte prices and point out a package if it is cheaper. Do the math carefully. For companies, multiply the per-person price by the number of people, using the ${MIN_SEATS}-person minimum.
+- You cannot see anyone's account, orders, or codes, and you cannot buy, cancel, or change anything. Point members to their member area (Log in at the top of the site) for that, and businesses to the For Businesses page.
+- Do not give medical, legal, or tax advice. Explain what the benefit offers and suggest using it. For a medical emergency, tell them to call 911.
+- Stay on CES Essentials topics. Politely decline unrelated requests.
+- Write in plain, friendly, short answers: a few sentences or a short list. Use simple words. Plain text only: no headings, no tables, no bold or other markdown symbols; use "- " for list items when a list helps.`;
+
+let cached: { text: string; at: number } | null = null;
+
+/** The full system prompt. Rebuilt every 10 minutes so price changes show up. */
+export async function assistantSystemPrompt(): Promise<string> {
+  if (cached && Date.now() - cached.at < 10 * 60 * 1000) return cached.text;
+  const knowledge = await buildKnowledge();
+  for (const name of PARTNER_NAMES) {
+    if (knowledge.toLowerCase().includes(name.toLowerCase())) throw new Error(`Chat knowledge would expose a partner name: ${name}`);
+  }
+  const text = `${RULES}\n\n<knowledge>\n${knowledge}</knowledge>`;
+  cached = { text, at: Date.now() };
+  return text;
+}
+
+/** Last-line safety net on the model's reply. */
+export function scrubPartnerNames(text: string): string {
+  let out = text;
+  for (const name of PARTNER_NAMES) out = out.replace(new RegExp(name.replace(/\s+/g, '\\s*'), 'gi'), 'our partner provider');
+  return out;
+}
