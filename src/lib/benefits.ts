@@ -195,3 +195,21 @@ export function benefitServices(view: BenefitsView): Record<string, BenefitServi
   }
   return out;
 }
+
+/** The guide with Virtual Healthcare (and the All-in-One plan that includes it) taken out. */
+export function withoutHealthcare(services: Record<string, BenefitService>): Record<string, BenefitService> {
+  const fix = (t: string) =>
+    t
+      .replace(/Starter, All-in-One, or /g, 'Starter or ')
+      .replace(/Join with All-in-One or add (.+?)\./g, 'Add $1 à la carte.')
+      .replace(/All-in-One or à la carte/g, 'À la carte');
+  const deep = <T,>(v: T): T => {
+    if (typeof v === 'string') return fix(v) as T;
+    if (Array.isArray(v)) return v.map(deep) as T;
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)])) as T;
+    return v;
+  };
+  const out: Record<string, BenefitService> = {};
+  for (const [id, s] of Object.entries(services)) if (id !== 'health') out[id] = deep(s);
+  return out;
+}

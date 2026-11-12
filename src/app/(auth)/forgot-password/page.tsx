@@ -1,6 +1,8 @@
 import { PublicPage } from '@/components/SiteChrome';
 import { ForgotForm } from '@/components/AuthForms';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = { title: 'Reset your password — CES Essentials' };
 
 export default function Page() {

@@ -4,6 +4,7 @@ import { Logo } from '@/components/SiteChrome';
 import { CompanySignupForm } from '@/components/CompanySignupForm';
 import { admin } from '@/lib/supabase/admin';
 import { currentUser } from '@/lib/supabase/server';
+import { healthcareOnSale } from '@/lib/healthcare';
 
 export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Company signup — CES Essentials', robots: { index: false, follow: false } };
@@ -14,13 +15,14 @@ export default async function Page({ params }: { params: Promise<{ token: string
   const { data: request } = await db.from('business_requests').select('*').eq('signup_token', token).maybeSingle();
   if (!request || !['approved', 'signed_up'].includes(request.status)) notFound();
 
-  const [{ data: products }, { data: policy }, user] = await Promise.all([
+  const [{ data: products }, { data: policy }, user, healthcare] = await Promise.all([
     db.from('products').select('id, name, price_cents').in('id', ['starter', 'all_in_one', 'starter_company', 'all_in_one_company']),
     db.from('policy_versions').select('version, wording').eq('slug', 'refund_ack_company').order('version', { ascending: false }).limit(1).single(),
     currentUser(),
+    healthcareOnSale(),
   ]);
   const price = (id: string) => products?.find((p) => p.id === id)?.price_cents ?? 0;
-  const plans = [
+  const allPlans = [
     { id: 'starter_company', name: 'Starter', priceCents: price('starter_company'), regularCents: price('starter'), includes: 'Family Legal + Tax Prep, Credit Monitoring + VPN, Discount Club' },
     {
       id: 'all_in_one_company',
@@ -30,7 +32,8 @@ export default async function Page({ params }: { params: Promise<{ token: string
       includes: 'Everything in Starter, plus unlimited $0-copay virtual healthcare for each employee and up to 3 more people, CESgpt, Streamify Me',
     },
   ];
-  const interest = request.interest === 'Starter' ? 'starter_company' : 'all_in_one_company';
+  const plans = healthcare ? allPlans : allPlans.filter((p) => p.id !== 'all_in_one_company');
+  const interest = !healthcare || request.interest === 'Starter' ? 'starter_company' : 'all_in_one_company';
   let signedInEmail: string | null = null;
   if (user) {
     const { data: p } = await db.from('profiles').select('email').eq('id', user.id).maybeSingle();

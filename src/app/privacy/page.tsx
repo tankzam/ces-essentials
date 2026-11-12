@@ -1,5 +1,7 @@
 import { COMPANY, Email, LegalPage } from '@/components/LegalPage';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = { title: 'Privacy Policy — CES Essentials' };
 
 export default function Page() {

@@ -118,7 +118,7 @@ export function BenefitsGuide({ services, printAllHref }: { services: Record<str
           </a>
         )}
         <div className="flex flex-wrap gap-1.5 lg:flex-col">
-          {BENEFIT_ORDER.map((k) => {
+          {BENEFIT_ORDER.filter((k) => services[k]).map((k) => {
             const on = k === svc;
             return (
               <button

@@ -1,6 +1,7 @@
 import 'server-only';
 import { allProducts } from '@/lib/catalog';
-import { BENEFIT_ORDER, benefitServices, type Section } from '@/lib/benefits';
+import { BENEFIT_ORDER, benefitServices, withoutHealthcare, type Section } from '@/lib/benefits';
+import { healthcareOnSale, includesHealthcare } from '@/lib/healthcare';
 import { MIN_SEATS } from '@/lib/company';
 import { money } from '@/lib/money';
 import { admin } from '@/lib/supabase/admin';
@@ -68,13 +69,14 @@ async function websitePages(): Promise<{ text: string; complete: boolean }> {
 }
 
 async function buildKnowledge(): Promise<string> {
-  const [products, services] = await Promise.all([
+  const [products, services, healthcare] = await Promise.all([
     allProducts(),
     admin().from('services').select('id, name, public_description, sort_order').order('sort_order'),
+    healthcareOnSale(),
   ]);
   if (services.error) throw services.error;
   const serviceName = new Map(services.data.map((s) => [s.id, s.name as string]));
-  const live = products.filter((p) => p.active);
+  const live = products.filter((p) => p.active && (healthcare || !includesHealthcare(p)));
   const includes = (p: (typeof live)[number]) =>
     [...p.product_services.map((s) => serviceName.get(s.service_id) ?? s.service_id), 'Discount Club (free with any purchase)']
       .filter((v, i, a) => a.indexOf(v) === i)
@@ -85,8 +87,8 @@ async function buildKnowledge(): Promise<string> {
   const company = live.filter((p) => p.kind === 'company_package');
   const regularFor = (id: string) => live.find((p) => p.id === id.replace(/_company$/, ''));
 
-  const guide = benefitServices('public');
-  const benefitText = BENEFIT_ORDER.map((id) => {
+  const guide = healthcare ? benefitServices('public') : withoutHealthcare(benefitServices('public'));
+  const benefitText = BENEFIT_ORDER.filter((id) => guide[id]).map((id) => {
     const b = guide[id];
     return [`## ${b.name} (${b.group})`, b.lead, ...b.sections.map(sectionText)].join('\n\n');
   }).join('\n\n');
@@ -110,7 +112,7 @@ ${company.map((p) => {
     return `- ${p.name}: ${money(p.price_cents)} per person per month${reg ? ` (regular price ${money(reg.price_cents)})` : ''}. Includes: ${includes(p)}.`;
   }).join('\n')}
 - Minimum ${MIN_SEATS} people. The company is billed monthly for its active people, with a ${MIN_SEATS}-person minimum (fewer than ${MIN_SEATS} people are billed as ${MIN_SEATS}).
-- One plan for the whole team (Starter or All-in-One). À la carte items are not offered as company plans.
+- One plan for the whole team (${company.map((p) => p.name.replace(' (Company)', '')).join(' or ')}). À la carte items are not offered as company plans.
 - How to sign up: fill out the form on the For Businesses page (${env.siteUrl()}/for-businesses). CES reviews it and emails a private signup link with company pricing. The company then picks the plan and number of people, sets up an HR login, and pays with a company card.
 - HR dashboard: upload one spreadsheet of names and emails; each person gets their own login and welcome email. Add or remove people anytime; the bill adjusts. A removed person keeps access to the end of that billing month.
 - Companies sign a company agreement at signup (including not going around CES to deal directly with its providers).
@@ -129,14 +131,14 @@ ${company.map((p) => {
 - Switching plans: anytime in the member area. Moving to a more expensive plan starts right away (prorated difference charged). Moving to a cheaper plan starts on the next billing date.
 - Failed payment: access stays on for 2 days while the charge is retried, then pauses until payment goes through.
 - Activation codes are for personal use only and are never reused or shared.
-- CES Essentials is not insurance and is not a substitute for health insurance. Virtual healthcare is not for emergencies: call 911.
+- CES Essentials is not insurance and is not a substitute for health insurance.${healthcare ? ' Virtual healthcare is not for emergencies: call 911.' : ''}
 - To change your account email, email us.
 
 ## Speed of access
 - Most services are ready right after payment.
 - Family Legal + Tax Prep takes 24 to 48 hours to become active.
 - Credit Monitoring + VPN: one activation code, shown in the member area, activates both.
-- Healthcare covers you plus up to 3 more people, at any address, with a $0 copay.
+${healthcare ? '- Healthcare covers you plus up to 3 more people, at any address, with a $0 copay.' : '- Virtual Healthcare and the All-in-One plan are not offered right now. If asked, say they are not available at this time and suggest Starter or the à la carte items above. Do not describe healthcare benefits or give a date for their return.'}
 
 # Benefit details (public Benefits Guide)
 

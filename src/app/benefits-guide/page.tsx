@@ -1,10 +1,14 @@
 import { TopNav, SiteFooter } from '@/components/SiteChrome';
 import { BenefitsGuide } from '@/components/BenefitsGuide';
-import { benefitServices } from '@/lib/benefits';
+import { benefitServices, withoutHealthcare } from '@/lib/benefits';
+import { healthcareOnSale } from '@/lib/healthcare';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = { title: 'Benefits Guide — CES Essentials' };
 
-export default function Page() {
+export default async function Page() {
+  const healthcare = await healthcareOnSale();
   return (
     <div>
       <header className="bg-navy text-white print:hidden">
@@ -17,7 +21,7 @@ export default function Page() {
         </section>
       </header>
       <main className="mx-auto max-w-[1180px] px-4 py-10 sm:px-6">
-        <BenefitsGuide services={benefitServices('public')} />
+        <BenefitsGuide services={(healthcare ? benefitServices('public') : withoutHealthcare(benefitServices('public')))} />
       </main>
       <div className="print:hidden">
         <SiteFooter />

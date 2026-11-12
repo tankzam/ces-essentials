@@ -1,9 +1,13 @@
 import { BenefitsGuide } from '@/components/BenefitsGuide';
-import { benefitServices } from '@/lib/benefits';
+import { benefitServices, withoutHealthcare } from '@/lib/benefits';
+import { healthcareOnSale } from '@/lib/healthcare';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = { title: 'Benefits Guide for HR — CES Essentials' };
 
-export default function Page() {
+export default async function Page() {
+  const healthcare = await healthcareOnSale();
   return (
     <>
       <div className="print:hidden">
@@ -11,7 +15,7 @@ export default function Page() {
         <h1 className="text-[32px] font-extrabold tracking-tight">Benefits Guide</h1>
         <p className="text-muted">Everything included in your team&apos;s plan. Share these pages with employees.</p>
       </div>
-      <BenefitsGuide services={benefitServices('hr')} printAllHref="/hr/benefits/print" />
+      <BenefitsGuide services={(healthcare ? benefitServices('hr') : withoutHealthcare(benefitServices('hr')))} printAllHref="/hr/benefits/print" />
     </>
   );
 }

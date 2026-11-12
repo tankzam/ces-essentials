@@ -1,5 +1,6 @@
 import 'server-only';
 import { admin } from '@/lib/supabase/admin';
+import { healthcareOnSale, HEALTHCARE, includesHealthcare } from '@/lib/healthcare';
 import { DISCOUNT_CLUB, type PublicCatalog, type Selection } from '@/lib/catalog-shared';
 
 export interface ProductRow {
@@ -27,14 +28,16 @@ export async function allProducts(): Promise<ProductRow[]> {
 }
 
 export async function publicCatalog(): Promise<PublicCatalog> {
-  const [products, services] = await Promise.all([
+  const [products, services, healthcare] = await Promise.all([
     allProducts(),
     admin().from('services').select('id, name, public_description, sort_order').order('sort_order'),
+    healthcareOnSale(),
   ]);
   if (services.error) throw services.error;
   return {
     products: products
       .filter((p) => p.active && p.public && (p.kind === 'package' || p.kind === 'addon'))
+      .filter((p) => healthcare || !includesHealthcare(p))
       .map((p) => ({
         id: p.id,
         name: p.name,
@@ -43,7 +46,7 @@ export async function publicCatalog(): Promise<PublicCatalog> {
         badge: p.badge,
         serviceIds: p.product_services.map((s) => s.service_id),
       })),
-    services: services.data.map((s) => ({ id: s.id, name: s.name, description: s.public_description })),
+    services: services.data.filter((s) => healthcare || s.id !== HEALTHCARE).map((s) => ({ id: s.id, name: s.name, description: s.public_description })),
   };
 }
 
@@ -75,6 +78,9 @@ export async function resolveSelection(input: unknown): Promise<{ products: Prod
     throw new SelectionError('Choose a plan first.');
   }
 
+  if (chosen.some(includesHealthcare) && !(await healthcareOnSale())) {
+    throw new SelectionError('Virtual Healthcare and the All-in-One plan are not available right now. Please choose Starter or other items.');
+  }
   for (const p of chosen) {
     if (!p.stripe_price_id) throw new Error(`Product ${p.id} has no Stripe price. Run scripts/setup-stripe.mjs.`);
   }

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { currentUser } from '@/lib/supabase/server';
 import { homeFor } from '@/lib/accounts';
+import { healthcareOnSale } from '@/lib/healthcare';
 import { logout } from '@/app/(auth)/actions';
 
 export function Logo({ dark = true }: { dark?: boolean }) {
@@ -71,7 +72,8 @@ export async function TopNav() {
   );
 }
 
-export function SiteFooter() {
+export async function SiteFooter() {
+  const healthcare = await healthcareOnSale();
   const links = [
     { href: '/terms', label: 'Terms' },
     { href: '/privacy', label: 'Privacy' },
@@ -91,7 +93,7 @@ export function SiteFooter() {
             </Link>
           ))}
         </nav>
-        <p className="text-sm">Healthcare services are provided by a licensed telehealth provider.</p>
+        {healthcare && <p className="text-sm">Healthcare services are provided by a licensed telehealth provider.</p>}
         <p className="text-sm">© {new Date().getFullYear()} Creating Empowerment Solutions LLC</p>
       </div>
     </footer>

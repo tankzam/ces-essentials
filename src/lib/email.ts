@@ -2,6 +2,7 @@ import 'server-only';
 import { Resend } from 'resend';
 import { env } from '@/lib/env';
 import { admin } from '@/lib/supabase/admin';
+import { healthcareOnSale } from '@/lib/healthcare';
 import { money, formatDate } from '@/lib/money';
 
 let resend: Resend | null = null;
@@ -278,6 +279,18 @@ ${button(`${site}/admin/business`, 'Review in Admin')}`),
   });
 }
 
+/** Company prices from the products table; All-in-One only while healthcare is on sale. */
+async function companyPriceLine(): Promise<string> {
+  const [{ data }, healthcare] = await Promise.all([
+    admin().from('products').select('id, price_cents').in('id', ['starter_company', 'all_in_one_company']),
+    healthcareOnSale(),
+  ]);
+  const price = (id: string) => money(data?.find((p) => p.id === id)?.price_cents ?? 0);
+  return healthcare
+    ? `<strong>Starter ${price('starter_company')}</strong> or <strong>All-in-One ${price('all_in_one_company')}</strong>`
+    : `<strong>Starter ${price('starter_company')}</strong>`;
+}
+
 export async function sendCompanySignupLink(r: { id: string; company: string; contact_name: string; email: string }, url: string) {
   await send({
     key: `company_link:${r.id}`,
@@ -287,7 +300,7 @@ export async function sendCompanySignupLink(r: { id: string; company: string; co
     subject: `Your CES Essentials company pricing, ${r.company}`,
     html: layout(`<h1 style="margin:0 0 12px;font-size:22px">Your company pricing is ready</h1>
 <p>Hi ${esc(r.contact_name.split(' ')[0] || r.contact_name)}, thanks for your interest in CES Essentials for ${esc(r.company)}.</p>
-<p>Company pricing: <strong>Starter $15.99</strong> or <strong>All-in-One $39.99</strong> per person per month, with a 5-person minimum. Pick a plan, set up your HR login, and you can start adding employees right away.</p>
+<p>Company pricing: ${await companyPriceLine()} per person per month, with a 5-person minimum. Pick your plan, set up your HR login, and you can start adding employees right away.</p>
 ${button(url, 'Open your private signup page')}
 <p style="margin-top:20px;font-size:14px;color:#5A5C6E">This link is private to your company. Please don't share it outside your team.</p>`),
   });

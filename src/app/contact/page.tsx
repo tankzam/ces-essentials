@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { PublicPage } from '@/components/SiteChrome';
 import { COMPANY, Email } from '@/components/LegalPage';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = { title: 'Contact — CES Essentials' };
 
 export default function Page() {

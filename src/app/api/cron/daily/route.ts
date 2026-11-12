@@ -3,6 +3,7 @@ import { admin } from '@/lib/supabase/admin';
 import { env, GRACE_PERIOD_MS } from '@/lib/env';
 import { deliverWaitingCodes, syncSubscription } from '@/lib/fulfillment';
 import { finishRemovals } from '@/lib/hr';
+import { stopHealthcareOnStripe } from '@/lib/healthcare';
 import { refreshAllShopifySubscriptions } from '@/lib/shopify-billing';
 
 export const runtime = 'nodejs';
@@ -44,6 +45,11 @@ export async function GET(req: Request) {
     await finishRemovals(); // employees whose last paid month has ended
   } catch (e) {
     errors.push(`removals: ${e instanceof Error ? e.message : e}`);
+  }
+  try {
+    await stopHealthcareOnStripe(); // healthcare is never sold through Stripe
+  } catch (e) {
+    errors.push(`healthcare: ${e instanceof Error ? e.message : e}`);
   }
   try {
     await deliverWaitingCodes();

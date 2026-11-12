@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { COMPANY, Email, LegalPage } from '@/components/LegalPage';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = { title: 'Refund Policy — CES Essentials' };
 
 export default function Page() {

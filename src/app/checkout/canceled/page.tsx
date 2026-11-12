@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { PublicPage } from '@/components/SiteChrome';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = { title: 'Checkout canceled — CES Essentials' };
 
 export default function Page() {

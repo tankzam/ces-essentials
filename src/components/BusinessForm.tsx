@@ -6,7 +6,7 @@ import Link from 'next/link';
 const field = 'min-h-12 w-full rounded-lg border border-[#C8C7BF] bg-white px-3 text-base';
 const label = 'flex flex-col gap-1.5 text-sm font-semibold';
 
-export function BusinessForm() {
+export function BusinessForm({ plans = ['Starter', 'All-in-One'] }: { plans?: string[] }) {
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +60,7 @@ export function BusinessForm() {
         <label className={label}>
           Plan you&apos;re interested in
           <select name="interest" className={field} defaultValue="Not sure yet">
-            {['Not sure yet', 'Starter', 'All-in-One'].map((o) => <option key={o}>{o}</option>)}
+            {['Not sure yet', ...plans].map((o) => <option key={o}>{o}</option>)}
           </select>
         </label>
       </div>

@@ -3,6 +3,8 @@ import { PublicPage } from '@/components/SiteChrome';
 import { ResetForm } from '@/components/AuthForms';
 import { currentUser } from '@/lib/supabase/server';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata = { title: 'Choose a new password — CES Essentials' };
 
 export default async function Page() {

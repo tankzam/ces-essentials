@@ -1,3 +1,4 @@
+import { stopHealthcareOnStripe } from '@/lib/healthcare';
 import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
 import { z } from 'zod';
@@ -27,6 +28,7 @@ const Body = z.discriminatedUnion('action', [
   z.object({ action: z.literal('resend_emails'), profileId: z.string().uuid() }),
   z.object({ action: z.literal('set_provider'), provider: z.enum(['stripe', 'shopify']) }),
   z.object({ action: z.literal('refresh_shopify_plans') }),
+  z.object({ action: z.literal('healthcare_stripe_off') }),
   z.object({ action: z.literal('threshold'), value: z.number().int().min(0).max(100000) }),
   z.object({ action: z.literal('add_admin'), email: z.string().trim().toLowerCase().email(), fullName: z.string().trim().min(2).max(120) }),
   z.object({ action: z.literal('approve_request'), requestId: z.string().uuid() }),
@@ -91,6 +93,12 @@ export async function POST(req: Request) {
       await db.from('settings').update({ value: b.provider, updated_at: new Date().toISOString() }).eq('key', 'payment_provider');
       await logActivity(me, `switched checkout to ${b.provider === 'shopify' ? 'Shopify (CES Marketplace)' : 'Stripe'}`);
       return NextResponse.json({ ok: true, message: `New checkouts now go through ${b.provider === 'shopify' ? 'Shopify (CES Marketplace)' : 'Stripe'}. Existing members stay on what they signed up with.` });
+    }
+
+    case 'healthcare_stripe_off': {
+      const ids = await stopHealthcareOnStripe();
+      await logActivity(me, 'turned off Virtual Healthcare and All-in-One in Stripe', undefined, { products: ids });
+      return NextResponse.json({ ok: true, message: `Stripe can no longer charge for: ${ids.join(', ') || 'nothing (already off)'}.` });
     }
 
     case 'resend_emails': {
