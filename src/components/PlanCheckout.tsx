@@ -147,7 +147,7 @@ export function PlanCheckout({
       <section id="plans" className="mx-auto max-w-[1180px] scroll-mt-4 px-4 pb-10 pt-20 sm:px-6">
         <h2 className="mb-3 text-center text-3xl font-extrabold tracking-tight sm:text-4xl">Choose your plan</h2>
         <p className="mb-12 text-center text-lg text-muted">Cancel anytime. Your access lasts through the end of your billing month.</p>
-        <div className="grid items-stretch gap-7 md:grid-cols-2">
+        <div className={packages.length > 1 ? 'grid items-stretch gap-7 md:grid-cols-2' : 'mx-auto grid w-full max-w-[560px]'}>
           {packages.map((p) => {
             const dark = p.id === 'all_in_one';
             return (
