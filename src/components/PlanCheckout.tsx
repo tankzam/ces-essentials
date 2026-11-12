@@ -13,7 +13,7 @@ export const PICK_EVENT = 'ces:pick-plan';
 
 const TAGLINES: Record<string, string> = {
   starter: "Protect your family's legal, financial, and online life.",
-  all_in_one: 'Everything in Starter, plus unlimited virtual doctor visits for 4 people.',
+  all_in_one: 'Everything in Essential, plus unlimited virtual doctor visits for 4 people.',
 };
 
 export function PlanCheckout({
@@ -55,7 +55,7 @@ export function PlanCheckout({
   const featureList = (serviceIds: string[], pkgId: string) => {
     const order = catalog.services.map((s) => s.id);
     const ids = [...serviceIds].sort((a, b) => order.indexOf(a) - order.indexOf(b));
-    // Starter features first, then what All-in-One adds, matching the plan copy.
+    // Essential features first, then what All-in-One adds, matching the plan copy.
     if (pkgId !== 'starter' && starter) {
       ids.sort((a, b) => Number(!starter.serviceIds.includes(a)) - Number(!starter.serviceIds.includes(b)));
     }

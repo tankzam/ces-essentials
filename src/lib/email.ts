@@ -287,8 +287,8 @@ async function companyPriceLine(): Promise<string> {
   ]);
   const price = (id: string) => money(data?.find((p) => p.id === id)?.price_cents ?? 0);
   return healthcare
-    ? `<strong>Starter ${price('starter_company')}</strong> or <strong>All-in-One ${price('all_in_one_company')}</strong>`
-    : `<strong>Starter ${price('starter_company')}</strong>`;
+    ? `<strong>Essential ${price('starter_company')}</strong> or <strong>All-in-One ${price('all_in_one_company')}</strong>`
+    : `<strong>Essential ${price('starter_company')}</strong>`;
 }
 
 export async function sendCompanySignupLink(r: { id: string; company: string; contact_name: string; email: string }, url: string) {

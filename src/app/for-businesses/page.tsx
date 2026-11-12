@@ -11,8 +11,8 @@ const features = (healthcare: boolean) => [
   { title: 'Easy employee upload', text: 'Upload one spreadsheet of names and emails. Everyone gets their own login and welcome email.' },
   { title: 'One simple bill', text: 'Pay monthly for your active people. Your bill adjusts when you add or remove someone.' },
   healthcare
-    ? { title: 'Two plans to choose from', text: 'Starter or All-in-One for your whole team, at company pricing well below our regular rates.' }
-    : { title: 'Company pricing', text: 'Starter for your whole team: family legal help, tax prep, credit monitoring, and a VPN, at company pricing well below our regular rate.' },
+    ? { title: 'Two plans to choose from', text: 'Essential or All-in-One for your whole team, at company pricing well below our regular rates.' }
+    : { title: 'Company pricing', text: 'Essential for your whole team: family legal help, tax prep, credit monitoring, and a VPN, at company pricing well below our regular rate.' },
 ];
 
 export default async function Page() {
@@ -47,7 +47,7 @@ export default async function Page() {
         </section>
         <section className="mx-auto max-w-[720px] px-4 pb-24 pt-10 sm:px-6">
           <div className="rounded-[18px] border border-line bg-white p-6 sm:p-9">
-            <BusinessForm plans={healthcare ? ['Starter', 'All-in-One'] : ['Starter']} />
+            <BusinessForm plans={healthcare ? ['Essential', 'All-in-One'] : ['Essential']} />
           </div>
         </section>
       </main>

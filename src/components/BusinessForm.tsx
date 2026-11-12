@@ -6,7 +6,7 @@ import Link from 'next/link';
 const field = 'min-h-12 w-full rounded-lg border border-[#C8C7BF] bg-white px-3 text-base';
 const label = 'flex flex-col gap-1.5 text-sm font-semibold';
 
-export function BusinessForm({ plans = ['Starter', 'All-in-One'] }: { plans?: string[] }) {
+export function BusinessForm({ plans = ['Essential', 'All-in-One'] }: { plans?: string[] }) {
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);

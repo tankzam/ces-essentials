@@ -8,7 +8,7 @@ import { healthcareOnSale } from '@/lib/healthcare';
 export const dynamic = 'force-dynamic';
 
 const steps = (healthcare: boolean) => [
-  { title: 'Pick your plan', text: healthcare ? 'Starter, All-in-One, or build your own.' : 'Starter, or build your own.' },
+  { title: 'Pick your plan', text: healthcare ? 'Essential, All-in-One, or build your own.' : 'Essential, or build your own.' },
   { title: 'Check out securely', text: 'Pay by card. Cancel anytime, and your access lasts through the end of your billing month.' },
   { title: 'Get access right away', text: 'Your member area unlocks everything you bought, including activation codes.' },
 ];

@@ -34,7 +34,7 @@ export async function POST(req: Request) {
   }
   const b = parsed.data;
   const db = admin();
-  if (b.plan === 'all_in_one_company' && !(await healthcareOnSale())) return fail('The All-in-One plan is not available right now. Please choose Starter.');
+  if (b.plan === 'all_in_one_company' && !(await healthcareOnSale())) return fail('The All-in-One plan is not available right now. Please choose Essential.');
 
   const { data: request } = await db.from('business_requests').select('*').eq('signup_token', b.token).maybeSingle();
   if (!request || !request.organization_id) return fail('This signup link is not valid.', 404);

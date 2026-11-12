@@ -66,7 +66,7 @@ export function benefitServices(view: BenefitsView): Record<string, BenefitServi
           ]) }),
           sec({ type: 'bullets', title: 'Free online legal forms', intro: 'Download and complete state-specific, self-service forms to create legally valid documents.', items: ['Last Will and Testament', 'Bill of Sale', 'Landlord/Tenant Agreements', 'Leases', 'Advance Health Care Directive / Living Will', 'Power of Attorney'] }),
           start(
-            ['Join with Starter, All-in-One, or Family Legal + Tax Prep.', 'You get a setup email with the link to create your legal plan account.', 'Your account becomes active within 24 to 48 hours.'],
+            ['Join with Essential, All-in-One, or Family Legal + Tax Prep.', 'You get a setup email with the link to create your legal plan account.', 'Your account becomes active within 24 to 48 hours.'],
             ['Open your setup email, or go to legalclub.com/members.aspx.', 'Register with your CES Essentials account email.', 'Allow 24 to 48 hours for your account to become active. If you aren’t recognized yet, try again after 48 hours.']
           )
         ]
@@ -91,7 +91,7 @@ export function benefitServices(view: BenefitsView): Record<string, BenefitServi
             ['Peace of mind', 'All tax hotline advice is backed by a $1 million liability policy.']
           ]) }),
           start(
-            ['Join with Starter, All-in-One, or Family Legal + Tax Prep.', 'You get a setup email with the link to create your account.', 'Your account becomes active within 24 to 48 hours.'],
+            ['Join with Essential, All-in-One, or Family Legal + Tax Prep.', 'You get a setup email with the link to create your account.', 'Your account becomes active within 24 to 48 hours.'],
             ['Use the same account as your Family Legal Plan: legalclub.com/members.aspx.', 'Register with your CES Essentials account email.', 'Allow 24 to 48 hours for your account to become active.']
           )
         ]
@@ -119,7 +119,7 @@ export function benefitServices(view: BenefitsView): Record<string, BenefitServi
             ['Parental controls', 'Help keep your kids safe online. Children are often targets of identity theft that goes unnoticed for years.']
           ]) }),
           start(
-            ['Join with Starter, All-in-One, or Credit Monitoring + VPN.', 'Your activation code appears in your member area right away.', 'Activate both credit monitoring and the VPN with that one code.'],
+            ['Join with Essential, All-in-One, or Credit Monitoring + VPN.', 'Your activation code appears in your member area right away.', 'Activate both credit monitoring and the VPN with that one code.'],
             ['Copy your activation code from My Services.', 'Click Activate with provider and register with your CES Essentials account email.', 'Install the security app on up to 10 devices. VPN questions: (877) 875-4374.']
           )
         ]
@@ -200,7 +200,7 @@ export function benefitServices(view: BenefitsView): Record<string, BenefitServi
 export function withoutHealthcare(services: Record<string, BenefitService>): Record<string, BenefitService> {
   const fix = (t: string) =>
     t
-      .replace(/Starter, All-in-One, or /g, 'Starter or ')
+      .replace(/Essential, All-in-One, or /g, 'Essential or ')
       .replace(/Join with All-in-One or add (.+?)\./g, 'Add $1 à la carte.')
       .replace(/All-in-One or à la carte/g, 'À la carte');
   const deep = <T,>(v: T): T => {

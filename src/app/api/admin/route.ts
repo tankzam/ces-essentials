@@ -1,3 +1,4 @@
+import { syncProductNames } from '@/lib/product-names';
 import { stopHealthcareOnStripe } from '@/lib/healthcare';
 import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
@@ -29,6 +30,7 @@ const Body = z.discriminatedUnion('action', [
   z.object({ action: z.literal('set_provider'), provider: z.enum(['stripe', 'shopify']) }),
   z.object({ action: z.literal('refresh_shopify_plans') }),
   z.object({ action: z.literal('healthcare_stripe_off') }),
+  z.object({ action: z.literal('sync_product_names') }),
   z.object({ action: z.literal('threshold'), value: z.number().int().min(0).max(100000) }),
   z.object({ action: z.literal('add_admin'), email: z.string().trim().toLowerCase().email(), fullName: z.string().trim().min(2).max(120) }),
   z.object({ action: z.literal('approve_request'), requestId: z.string().uuid() }),
@@ -100,6 +102,13 @@ export async function POST(req: Request) {
       await logActivity(me, 'turned off Virtual Healthcare and All-in-One in Stripe', undefined, { done, problems });
       if (problems.length) return fail(`Stripe said: ${problems.join(' | ')}${done.length ? `. Archived OK: ${done.join(', ')}` : ''}`, 409);
       return NextResponse.json({ ok: true, message: `Archived in Stripe (product and price): ${done.join(', ')}. Stripe can no longer charge for them.` });
+    }
+
+    case 'sync_product_names': {
+      const { updated, problems } = await syncProductNames();
+      await logActivity(me, 'updated product names in Stripe and Shopify', undefined, { updated, problems });
+      if (problems.length) return fail(`Some names did not update: ${problems.join(' | ')}${updated.length ? `. Updated: ${updated.join(', ')}` : ''}`, 409);
+      return NextResponse.json({ ok: true, message: updated.length ? `Updated: ${updated.join(', ')}.` : 'Stripe and Shopify already match.' });
     }
 
     case 'resend_emails': {

@@ -21,7 +21,7 @@ export default async function Page() {
     <>
       <h1 className="text-[32px] font-extrabold tracking-tight">Business Requests</h1>
       <p className="text-muted">
-        Requests from the For Businesses form. Approving sends the company a private signup link with company pricing: Starter $15.99 and All-in-One $39.99 per person, 5-person minimum.
+        Requests from the For Businesses form. Approving sends the company a private signup link with company pricing: Essential $15.99 and All-in-One $39.99 per person, 5-person minimum.
       </p>
       {/* Phones: one card per request */}
       <ul className="flex flex-col gap-3 md:hidden">

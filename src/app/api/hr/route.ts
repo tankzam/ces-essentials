@@ -90,7 +90,7 @@ export async function POST(req: Request) {
       if (!sub || sub.status !== 'active') return fail('Your plan can be changed once your payment is up to date.', 409);
       if (sub.provider === 'shopify') return fail('Your company plan is billed through CES Marketplace. Email us to switch plans and we will update it for you.', 409);
       if (org.plan_product_id === b.plan) return fail('That is already your plan.');
-      if (b.plan === 'all_in_one_company' && !(await healthcareOnSale())) return fail('The All-in-One plan is not available right now. Please choose Starter.');
+      if (b.plan === 'all_in_one_company' && !(await healthcareOnSale())) return fail('The All-in-One plan is not available right now. Please choose Essential.');
       const { data: next } = await db.from('products').select('*').eq('id', b.plan).single();
       const { data: current } = await db.from('products').select('*').eq('id', org.plan_product_id ?? '').maybeSingle();
       if (!next?.stripe_price_id) return fail('That plan is not available.', 409);

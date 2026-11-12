@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 type Msg = { role: 'user' | 'assistant'; content: string };
 
 const SUGGESTIONS = [
-  'What does the Starter plan include?',
+  'What does the Essential plan include?',
   'What can I buy à la carte?',
   'What does the legal plan include?',
   'How does pricing work for my company of 12 people?',

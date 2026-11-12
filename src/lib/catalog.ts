@@ -79,7 +79,7 @@ export async function resolveSelection(input: unknown): Promise<{ products: Prod
   }
 
   if (chosen.some(includesHealthcare) && !(await healthcareOnSale())) {
-    throw new SelectionError('Virtual Healthcare and the All-in-One plan are not available right now. Please choose Starter or other items.');
+    throw new SelectionError('Virtual Healthcare and the All-in-One plan are not available right now. Please choose Essential or other items.');
   }
   for (const p of chosen) {
     if (!p.stripe_price_id) throw new Error(`Product ${p.id} has no Stripe price. Run scripts/setup-stripe.mjs.`);

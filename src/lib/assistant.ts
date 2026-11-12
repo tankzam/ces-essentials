@@ -138,7 +138,7 @@ ${company.map((p) => {
 - Most services are ready right after payment.
 - Family Legal + Tax Prep takes 24 to 48 hours to become active.
 - Credit Monitoring + VPN: one activation code, shown in the member area, activates both.
-${healthcare ? '- Healthcare covers you plus up to 3 more people, at any address, with a $0 copay.' : '- Virtual Healthcare and the All-in-One plan are not offered right now. If asked, say they are not available at this time and suggest Starter or the à la carte items above. Do not describe healthcare benefits or give a date for their return.'}
+${healthcare ? '- Healthcare covers you plus up to 3 more people, at any address, with a $0 copay.' : '- Virtual Healthcare and the All-in-One plan are not offered right now. If asked, say they are not available at this time and suggest Essential or the à la carte items above. Do not describe healthcare benefits or give a date for their return.'}
 
 # Benefit details (public Benefits Guide)
 
