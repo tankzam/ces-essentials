@@ -37,6 +37,14 @@ export async function POST(req: Request) {
   const db = admin();
   const supabase = await serverClient();
 
+  // ── Check the plan first, so nobody gets an account for something we can't sell.
+  try {
+    await resolveSelection(selection);
+  } catch (e) {
+    if (e instanceof SelectionError) return fail(e.message);
+    throw e;
+  }
+
   // ── Who is buying: the signed-in member, or a new account created now.
   let { data: { user } } = await supabase.auth.getUser();
   if (!user) {
