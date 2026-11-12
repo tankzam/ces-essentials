@@ -22,20 +22,32 @@ export async function healthcareOnSale(): Promise<boolean> {
  * companies), so Stripe can never charge for it. Archived, not deleted:
  * Stripe keeps the history, and they can be restored later.
  */
-export async function stopHealthcareOnStripe(): Promise<string[]> {
+export async function stopHealthcareOnStripe(): Promise<{ done: string[]; problems: string[] }> {
   const { data } = await admin().from('products').select('id, name, stripe_price_id, stripe_product_id, product_services(service_id)');
   const done: string[] = [];
+  const problems: string[] = [];
+  const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
   for (const p of data ?? []) {
     if (!includesHealthcare(p)) continue;
-    if (p.stripe_price_id) {
-      const price = await stripe().prices.retrieve(p.stripe_price_id);
-      if (price.active) await stripe().prices.update(p.stripe_price_id, { active: false });
+    try {
+      if (p.stripe_product_id) {
+        const product = await stripe().products.retrieve(p.stripe_product_id);
+        // A product's default price can't be archived while it is the default, so clear it first.
+        if (product.default_price) await stripe().products.update(p.stripe_product_id, { default_price: '' });
+      }
+      if (p.stripe_price_id) {
+        const price = await stripe().prices.retrieve(p.stripe_price_id);
+        if (price.active) await stripe().prices.update(p.stripe_price_id, { active: false });
+      }
+      if (p.stripe_product_id) {
+        const product = await stripe().products.retrieve(p.stripe_product_id);
+        if (product.active) await stripe().products.update(p.stripe_product_id, { active: false });
+      }
+      done.push(p.name);
+    } catch (e) {
+      console.error('stopHealthcareOnStripe', p.id, e);
+      problems.push(`${p.name}: ${why(e)}`);
     }
-    if (p.stripe_product_id) {
-      const product = await stripe().products.retrieve(p.stripe_product_id);
-      if (product.active) await stripe().products.update(p.stripe_product_id, { active: false });
-    }
-    if (p.stripe_price_id || p.stripe_product_id) done.push(p.name);
   }
-  return done;
+  return { done, problems };
 }
