@@ -98,7 +98,7 @@ export async function POST(req: Request) {
     case 'healthcare_stripe_off': {
       const ids = await stopHealthcareOnStripe();
       await logActivity(me, 'turned off Virtual Healthcare and All-in-One in Stripe', undefined, { products: ids });
-      return NextResponse.json({ ok: true, message: `Stripe can no longer charge for: ${ids.join(', ') || 'nothing (already off)'}.` });
+      return NextResponse.json({ ok: true, message: ids.length ? `Archived in Stripe (product and price): ${ids.join(', ')}. Stripe can no longer charge for them.` : 'Nothing to archive in Stripe.' });
     }
 
     case 'resend_emails': {

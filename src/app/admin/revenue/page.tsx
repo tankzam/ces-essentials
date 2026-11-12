@@ -68,7 +68,7 @@ export default async function Page() {
         <p className="text-sm text-subtle">
           Virtual Healthcare and All-in-One are {provider === 'shopify' ? <strong className="text-ok">on sale (Shopify checkout)</strong> : <strong className="text-danger">hidden and not sold</strong>}. They are never sold through Stripe, and show on the website only while checkout goes through Shopify.
         </p>
-        <div><AdminAction body={{ action: 'healthcare_stripe_off' }} confirm="Archive the Stripe prices for Virtual Healthcare and All-in-One?">Turn healthcare off in Stripe</AdminAction></div>
+        <div><AdminAction body={{ action: 'healthcare_stripe_off' }} confirm="Archive the Virtual Healthcare, All-in-One, and All-in-One (Company) products and prices in Stripe?">Turn healthcare off in Stripe</AdminAction></div>
       </div>
       <p className="text-muted">{monthName}</p>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

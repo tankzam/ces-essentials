@@ -16,15 +16,26 @@ export async function healthcareOnSale(): Promise<boolean> {
   return data?.value === 'shopify';
 }
 
-/** Archives the Stripe prices of every product that includes healthcare, so Stripe can never charge for it. */
+/**
+ * Archives, in Stripe, the price AND the product of everything that includes
+ * healthcare (Virtual Healthcare à la carte, All-in-One, All-in-One for
+ * companies), so Stripe can never charge for it. Archived, not deleted:
+ * Stripe keeps the history, and they can be restored later.
+ */
 export async function stopHealthcareOnStripe(): Promise<string[]> {
-  const { data } = await admin().from('products').select('id, stripe_price_id, product_services(service_id)');
+  const { data } = await admin().from('products').select('id, name, stripe_price_id, stripe_product_id, product_services(service_id)');
   const done: string[] = [];
   for (const p of data ?? []) {
-    if (!includesHealthcare(p) || !p.stripe_price_id) continue;
-    const price = await stripe().prices.retrieve(p.stripe_price_id);
-    if (price.active) await stripe().prices.update(p.stripe_price_id, { active: false });
-    done.push(p.id);
+    if (!includesHealthcare(p)) continue;
+    if (p.stripe_price_id) {
+      const price = await stripe().prices.retrieve(p.stripe_price_id);
+      if (price.active) await stripe().prices.update(p.stripe_price_id, { active: false });
+    }
+    if (p.stripe_product_id) {
+      const product = await stripe().products.retrieve(p.stripe_product_id);
+      if (product.active) await stripe().products.update(p.stripe_product_id, { active: false });
+    }
+    if (p.stripe_price_id || p.stripe_product_id) done.push(p.name);
   }
   return done;
 }
