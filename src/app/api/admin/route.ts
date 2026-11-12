@@ -98,7 +98,7 @@ export async function POST(req: Request) {
     case 'healthcare_stripe_off': {
       const { done, problems } = await stopHealthcareOnStripe();
       await logActivity(me, 'turned off Virtual Healthcare and All-in-One in Stripe', undefined, { done, problems });
-      if (problems.length) return fail(`Stripe said: ${problems.join(' | ')}${done.length ? `. Archived OK: ${done.join(', ')}` : ''}`, 502);
+      if (problems.length) return fail(`Stripe said: ${problems.join(' | ')}${done.length ? `. Archived OK: ${done.join(', ')}` : ''}`, 409);
       return NextResponse.json({ ok: true, message: `Archived in Stripe (product and price): ${done.join(', ')}. Stripe can no longer charge for them.` });
     }
 

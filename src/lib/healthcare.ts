@@ -45,6 +45,11 @@ export async function stopHealthcareOnStripe(): Promise<{ done: string[]; proble
       }
       done.push(p.name);
     } catch (e) {
+      // Already deleted in Stripe = nothing left to charge with.
+      if (e instanceof Error && /No such (product|price)/i.test(e.message)) {
+        done.push(`${p.name} (already deleted in Stripe)`);
+        continue;
+      }
       console.error('stopHealthcareOnStripe', p.id, e);
       problems.push(`${p.name}: ${why(e)}`);
     }
