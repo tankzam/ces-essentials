@@ -4,7 +4,16 @@ import { homeFor } from '@/lib/accounts';
 import { healthcareOnSale } from '@/lib/healthcare';
 import { logout } from '@/app/(auth)/actions';
 
-export function Logo({ dark = true }: { dark?: boolean }) {
+export function Logo({ dark = true, wordmark = false }: { dark?: boolean; wordmark?: boolean }) {
+  if (wordmark) {
+    // Text wordmark (Design 1 homepage): "CES" in amber, "Essentials" in white.
+    return (
+      <Link href="/" aria-label="CES Essentials home" className="flex min-h-11 items-center gap-2 text-[24px] font-extrabold tracking-tight text-white no-underline">
+        <span className="text-amber">CES</span>
+        <span>Essentials</span>
+      </Link>
+    );
+  }
   return (
     <Link href="/" className={`flex min-h-11 items-center gap-2.5 text-xl font-extrabold tracking-tight ${dark ? 'text-white' : 'text-navy'}`}>
       <span className="inline-flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-amber text-[15px] font-extrabold text-navy">CES</span>
@@ -51,12 +60,12 @@ function MenuLinks({ stacked = false, accountHref }: { stacked?: boolean; accoun
   );
 }
 
-export async function TopNav() {
+export async function TopNav({ wordmark = false }: { wordmark?: boolean } = {}) {
   const user = await currentUser();
   const accountHref = user ? await homeFor(user.id) : null;
   return (
     <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 px-4 py-5 sm:px-6">
-      <Logo />
+      <Logo wordmark={wordmark} />
       <nav aria-label="Main" className="hidden items-center gap-6 lg:flex">
         <MenuLinks accountHref={accountHref} />
       </nav>

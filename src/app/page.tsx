@@ -1,5 +1,6 @@
 import { TopNav, SiteFooter } from '@/components/SiteChrome';
 import { PlanCheckout, PickPlanButton } from '@/components/PlanCheckout';
+import { CESRefreshIntro } from '@/components/CESRefreshIntro';
 import { publicCatalog } from '@/lib/catalog';
 import { admin } from '@/lib/supabase/admin';
 import { currentUser } from '@/lib/supabase/server';
@@ -33,28 +34,13 @@ export default async function Home() {
 
   return (
     <div>
-      {/* 1. Header */}
-      <header className="bg-navy text-white">
-        <TopNav />
-        <section className="mx-auto flex max-w-[1180px] flex-col items-center gap-6 px-4 pb-24 pt-14 text-center sm:px-6 sm:pt-[72px]">
-          <h1 className="max-w-[820px] text-[38px] font-extrabold leading-[1.05] tracking-tight sm:text-[56px]">
-            {healthcare ? 'Healthcare, legal help, and protection for your whole family.' : 'Legal help, tax prep, and protection for your whole family.'}
-          </h1>
-          <p className="max-w-[680px] text-lg leading-relaxed text-mist sm:text-xl">
-            {healthcare
-              ? 'Unlimited $0-copay doctor visits, a family legal plan, tax prep, and credit monitoring, starting at $25.99 a month.'
-              : 'A family legal plan, tax prep, credit monitoring, and a VPN, starting at $25.99 a month.'}
-          </p>
-          <a href="#plans" className="mt-2 inline-flex min-h-[52px] items-center gap-2.5 rounded-[10px] bg-amber px-7 text-[17px] font-bold text-navy">
-            See plans
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M12 5v14M5 12l7 7 7-7" />
-            </svg>
-          </a>
-        </section>
-      </header>
+      {/* 1. Header: Design 1 hero with the site navigation over the photo */}
+      <CESRefreshIntro part="hero" catalog={catalog} healthcare={healthcare} nav={<TopNav wordmark />} />
 
       <main>
+        {/* Services overview (Design 1) */}
+        <CESRefreshIntro part="services" catalog={catalog} healthcare={healthcare} />
+
         {/* 2. How it works */}
         <section className="mx-auto max-w-[1180px] px-4 pt-20 sm:px-6">
           <h2 className="mb-10 text-center text-3xl font-extrabold tracking-tight sm:text-4xl">How it works</h2>
