@@ -79,6 +79,25 @@ export async function registerShopifyWebhooks(callbackUrl: string) {
   return out;
 }
 
+/** Where yearly-looking plans are attached in the store, to help when one landed on the wrong product. */
+async function yearlyPlansElsewhere(): Promise<string> {
+  try {
+    const r = await shopifyGraphql<{
+      sellingPlanGroups: { nodes: { name: string; products: { nodes: { title: string }[] }; sellingPlans: { nodes: { billingPolicy: { interval?: string; intervalCount?: number } }[] } }[] };
+    }>(
+      `{ sellingPlanGroups(first: 50) { nodes { name products(first: 5) { nodes { title } }
+         sellingPlans(first: 10) { nodes { billingPolicy { ... on SellingPlanRecurringBillingPolicy { interval intervalCount } } } } } } }`,
+    );
+    const yearlyish = r.sellingPlanGroups.nodes.filter((g) =>
+      g.sellingPlans.nodes.some((pl) => pl.billingPolicy?.interval === 'YEAR' || (pl.billingPolicy?.interval === 'MONTH' && (pl.billingPolicy.intervalCount ?? 1) >= 12)),
+    );
+    if (!yearlyish.length) return '. No yearly plan exists anywhere in the store yet.';
+    return `. Yearly plans found in the store: ${yearlyish.map((g) => `"${g.name}" on ${g.products.nodes.map((n) => n.title).join(', ') || 'no products'}`).join('; ')}`;
+  } catch {
+    return '';
+  }
+}
+
 /** Reads the selling plan attached to each CES product (set up in the Shopify Subscriptions app): every 1 month, or every 1 year for yearly plans. */
 export async function syncShopifySellingPlans() {
   const db = admin();
@@ -89,19 +108,22 @@ export async function syncShopifySellingPlans() {
       out[p.id] = 'no Shopify product';
       continue;
     }
-    const r = await shopifyGraphql<{
-      product: { sellingPlanGroups: { nodes: { name: string; sellingPlans: { nodes: { id: string; name: string; billingPolicy: { interval?: string; intervalCount?: number } }[] } }[] } } | null;
-    }>(
+    type Groups = { nodes: { name: string; sellingPlans: { nodes: { id: string; name: string; billingPolicy: { interval?: string; intervalCount?: number } }[] } }[] };
+    const r = await shopifyGraphql<{ product: { sellingPlanGroups: Groups; variants: { nodes: { sellingPlanGroups: Groups }[] } } | null }>(
       `query($id: ID!) {
         product(id: $id) {
-          sellingPlanGroups(first: 10) {
-            nodes { name sellingPlans(first: 10) { nodes { id name billingPolicy { ... on SellingPlanRecurringBillingPolicy { interval intervalCount } } } } }
-          }
+          sellingPlanGroups(first: 10) { ...G }
+          variants(first: 5) { nodes { sellingPlanGroups(first: 10) { ...G } } }
         }
+      }
+      fragment G on SellingPlanGroupConnection {
+        nodes { name sellingPlans(first: 10) { nodes { id name billingPolicy { ... on SellingPlanRecurringBillingPolicy { interval intervalCount } } } } }
       }`,
       { id: p.shopify_product_id },
     );
-    const plans = r.product?.sellingPlanGroups.nodes.flatMap((g) => g.sellingPlans.nodes) ?? [];
+    // Plans can be attached to the product or only to its variant; read both.
+    const groups = [...(r.product?.sellingPlanGroups.nodes ?? []), ...(r.product?.variants.nodes.flatMap((v) => v.sellingPlanGroups.nodes) ?? [])];
+    const plans = [...new Map(groups.flatMap((g) => g.sellingPlans.nodes).map((pl) => [pl.id, pl])).values()];
     const yearly = p.billing_interval === 'year';
     const match = plans.find((pl) =>
       yearly
@@ -118,7 +140,7 @@ export async function syncShopifySellingPlans() {
       ? `${word} plan "${match.name}"`
       : plans.length
         ? `has plans, but none bill every 1 ${yearly ? 'year' : 'month'} (found: ${found})`
-        : 'no subscription plan attached to this product in Shopify';
+        : `no subscription plan attached to this product in Shopify${yearly ? await yearlyPlansElsewhere() : ''}`;
   }
   return out;
 }
