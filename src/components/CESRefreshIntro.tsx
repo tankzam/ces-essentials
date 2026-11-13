@@ -92,7 +92,7 @@ export function CESRefreshIntro({ catalog, healthcare, nav, part }: { catalog: P
           <h2 id="ces-refresh-services-title">{words[cards.length] ?? cards.length} essential services for your family.</h2>
           <p>
             {essential
-              ? `The ${essential.name} plan covers legal help, tax prep, credit monitoring, and the Discount Club. Add the others anytime, or build your own plan.`
+              ? `The ${essential.name} plan includes all five for one monthly price. Or pick only what you want and build your own plan.`
               : 'Pick a plan or build your own.'}
           </p>
         </div>

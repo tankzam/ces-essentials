@@ -147,7 +147,7 @@ export function benefitServices(view: BenefitsView): Record<string, BenefitServi
         ].filter((x) => !(x.type === 'links' && x.items.length === 0))
       },
       gpt: {
-        name: 'CESgpt', group: 'All-in-One or à la carte', provider: 'Creating Empowerment Solutions',
+        name: 'CESgpt', group: 'Essential, All-in-One, or à la carte', provider: 'Creating Empowerment Solutions',
         lead: 'An AI assistant that streamlines your work, sparks creativity, and handles complex tasks for you.',
         sections: [
           sec({ type: 'cards', title: 'Core features', items: cards([
@@ -156,13 +156,13 @@ export function benefitServices(view: BenefitsView): Record<string, BenefitServi
             ['Always growing', 'New tools and specialized modes for business and personal productivity are added over time.']
           ]) }),
           start(
-            ['Join with All-in-One or add CESgpt.', 'Open CESgpt from your member area.', 'Start with a clear goal or prompt.'],
+            ['Join with Essential, All-in-One, or add CESgpt.', 'Open CESgpt from your member area.', 'Start with a clear goal or prompt.'],
             ['Click Open CESgpt in My Services.', 'Give it a clear goal or prompt.', 'Use Super Agent for multi-step tasks and Image Generation for visuals.']
           )
         ]
       },
       stream: {
-        name: 'Streamify Me', group: 'All-in-One or à la carte', provider: 'Creating Empowerment Solutions',
+        name: 'Streamify Me', group: 'Essential, All-in-One, or à la carte', provider: 'Creating Empowerment Solutions',
         lead: 'Find where any show or movie is streaming, and the best deal to watch it.',
         sections: [
           sec({ type: 'cards', title: 'What you get', items: cards([
@@ -171,7 +171,7 @@ export function benefitServices(view: BenefitsView): Record<string, BenefitServi
             ['Where it works', 'United States, United Kingdom, and Canada. Mexico is coming soon.']
           ]) }),
           start(
-            ['Join with All-in-One or add Streamify Me.', 'Open it from your member area.'],
+            ['Join with Essential, All-in-One, or add Streamify Me.', 'Open it from your member area.'],
             ['Click Open Streamify Me in My Services.', 'Search any movie, show, or actor.']
           )
         ]

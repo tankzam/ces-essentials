@@ -12,7 +12,7 @@ const features = (healthcare: boolean) => [
   { title: 'One simple bill', text: 'Pay monthly for your active people. Your bill adjusts when you add or remove someone.' },
   healthcare
     ? { title: 'Two plans to choose from', text: 'Essential or All-in-One for your whole team, at company pricing well below our regular rates.' }
-    : { title: 'Company pricing', text: 'Essential for your whole team: family legal help, tax prep, credit monitoring, and a VPN, at company pricing well below our regular rate.' },
+    : { title: 'Company pricing', text: 'Essential for your whole team: family legal help, tax prep, credit monitoring, a VPN, CESgpt, and Streamify Me, at company pricing well below our regular rate.' },
 ];
 
 export default async function Page() {

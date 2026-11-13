@@ -23,13 +23,13 @@ export default async function Page({ params }: { params: Promise<{ token: string
   ]);
   const price = (id: string) => products?.find((p) => p.id === id)?.price_cents ?? 0;
   const allPlans = [
-    { id: 'starter_company', name: 'Essential', priceCents: price('starter_company'), regularCents: price('starter'), includes: 'Family Legal + Tax Prep, Credit Monitoring + VPN, Discount Club' },
+    { id: 'starter_company', name: 'Essential', priceCents: price('starter_company'), regularCents: price('starter'), includes: 'Family Legal + Tax Prep, Credit Monitoring + VPN, CESgpt, Streamify Me, Discount Club' },
     {
       id: 'all_in_one_company',
       name: 'All-in-One',
       priceCents: price('all_in_one_company'),
       regularCents: price('all_in_one'),
-      includes: 'Everything in Essential, plus unlimited $0-copay virtual healthcare for each employee and up to 3 more people, CESgpt, Streamify Me',
+      includes: 'Everything in Essential, plus unlimited $0-copay virtual healthcare for each employee and up to 3 more people',
     },
   ];
   const plans = healthcare ? allPlans : allPlans.filter((p) => p.id !== 'all_in_one_company');
