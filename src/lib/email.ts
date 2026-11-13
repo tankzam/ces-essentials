@@ -190,8 +190,19 @@ ${button(`${site}/member/billing`, 'Update your card')}`),
   });
 }
 
-export async function sendCancellation(m: { id: string; email: string }, subscriptionId: string, accessEndsAt: string | null) {
+export async function sendCancellation(
+  m: { id: string; email: string },
+  subscriptionId: string,
+  accessEndsAt: string | null,
+  early?: { refundCents: number; chargedCents: number; monthsUsed: number },
+) {
   const site = env.siteUrl();
+  const body = early
+    ? `<p>You won't be charged again. You keep access to everything through <strong>${esc(formatDate(accessEndsAt))}</strong>.</p>
+<p>Because you canceled within the first 3 months of your yearly plan, you paid the monthly price for ${early.monthsUsed} month${early.monthsUsed === 1 ? '' : 's'} (${money(early.chargedCents)}). <strong>${money(early.refundCents)}</strong> is being refunded to your card. Refunds usually show up within 5 to 10 business days.</p>`
+    : `<p>You won't be charged again. You keep access to everything through <strong>${esc(formatDate(accessEndsAt))}</strong>.</p>
+<p>Changed your mind? You can keep your plan from your member area any time before then.</p>
+${button(`${site}/member/plan`, 'Keep my plan')}`;
   await send({
     key: `cancel:${subscriptionId}:${accessEndsAt ?? ''}`,
     template: 'cancellation',
@@ -199,9 +210,23 @@ export async function sendCancellation(m: { id: string; email: string }, subscri
     memberId: m.id,
     subject: 'Your CES Essentials plan is canceled',
     html: layout(`<h1 style="margin:0 0 12px;font-size:22px">Your plan is canceled</h1>
-<p>You won't be charged again. You keep access to everything through <strong>${esc(formatDate(accessEndsAt))}</strong>.</p>
-<p>Changed your mind? You can keep your plan from your member area any time before then.</p>
-${button(`${site}/member/plan`, 'Keep my plan')}`),
+${body}`),
+  });
+}
+
+/** Yearly plans: reminder about 30 days before the yearly charge. */
+export async function sendRenewalReminder(m: { id: string; email: string }, opts: { planName: string; amountCents: number; renewsAt: string; viaShopify: boolean }) {
+  const site = env.siteUrl();
+  await send({
+    key: `renewal_reminder:${m.id}:${opts.renewsAt.slice(0, 10)}`,
+    template: 'renewal_reminder',
+    to: m.email,
+    memberId: m.id,
+    subject: `Your CES Essentials yearly plan renews on ${formatDate(opts.renewsAt)}`,
+    html: layout(`<h1 style="margin:0 0 12px;font-size:22px">Your yearly plan renews soon</h1>
+<p>Your <strong>${esc(opts.planName)}</strong> plan renews on <strong>${esc(formatDate(opts.renewsAt))}</strong>, and your card will be charged <strong>${money(opts.amountCents)}</strong> for another year.</p>
+<p>Nothing to do if you'd like to keep it. To cancel before it renews, ${opts.viaShopify ? 'open your CES Marketplace account' : 'go to My Plan in your member area'}. After it renews, the same rule applies as your first year: cancel within the first 3 months and you pay the monthly price for the months you used and get the rest back. After 3 months there are no refunds.</p>
+${button(`${site}/member/plan`, 'Go to My Plan')}`),
   });
 }
 

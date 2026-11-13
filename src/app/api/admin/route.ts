@@ -1,4 +1,4 @@
-import { syncProductNames } from '@/lib/product-names';
+import { setUpProducts, syncProductNames } from '@/lib/product-names';
 import { stopHealthcareOnStripe } from '@/lib/healthcare';
 import { NextResponse } from 'next/server';
 import { randomBytes } from 'crypto';
@@ -80,14 +80,15 @@ export async function POST(req: Request) {
     case 'refresh_shopify_plans': {
       const { syncShopifySellingPlans } = await import('@/lib/shopify-billing');
       const plans = await syncShopifySellingPlans();
-      const missing = Object.entries(plans).filter(([, v]) => !v.startsWith('monthly')).map(([k]) => k);
+      const missing = Object.entries(plans).filter(([, v]) => !v.startsWith('monthly') && !v.startsWith('yearly')).map(([k]) => k);
       await logActivity(me, 'refreshed Shopify subscription plans');
-      return NextResponse.json({ ok: missing.length === 0, message: missing.length ? `Still missing a monthly plan: ${missing.join(', ')}` : 'All products have a monthly Shopify plan.' }, { status: missing.length ? 409 : 200 });
+      return NextResponse.json({ ok: missing.length === 0, message: missing.length ? `Still missing a subscription plan: ${missing.join(', ')}` : 'Every product has its Shopify subscription plan.' }, { status: missing.length ? 409 : 200 });
     }
 
     case 'set_provider': {
       if (b.provider === 'shopify') {
-        const { data: notReady } = await db.from('products').select('id').eq('active', true).or('shopify_variant_id.is.null,shopify_selling_plan_id.is.null');
+        // Yearly plans don't block the switch: they stay hidden until their Shopify plan exists.
+        const { data: notReady } = await db.from('products').select('id').eq('active', true).eq('billing_interval', 'month').or('shopify_variant_id.is.null,shopify_selling_plan_id.is.null');
         if (notReady?.length) {
           return fail(`Shopify isn't ready yet: ${notReady.map((p) => p.id).join(', ')} need a monthly subscription plan in Shopify. Set them up, then click "Check Shopify plans".`, 409);
         }
@@ -105,7 +106,10 @@ export async function POST(req: Request) {
     }
 
     case 'sync_product_names': {
-      const { updated, problems } = await syncProductNames();
+      const setup = await setUpProducts();
+      const names = await syncProductNames();
+      const updated = [...setup.created.map((c) => `created ${c}`), ...names.updated];
+      const problems = [...setup.problems, ...names.problems];
       await logActivity(me, 'updated product names in Stripe and Shopify', undefined, { updated, problems });
       if (problems.length) return fail(`Some names did not update: ${problems.join(' | ')}${updated.length ? `. Updated: ${updated.join(', ')}` : ''}`, 409);
       return NextResponse.json({ ok: true, message: updated.length ? `Updated: ${updated.join(', ')}.` : 'Stripe and Shopify already match.' });

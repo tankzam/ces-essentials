@@ -4,6 +4,7 @@ import { env, GRACE_PERIOD_MS } from '@/lib/env';
 import { deliverWaitingCodes, syncSubscription } from '@/lib/fulfillment';
 import { finishRemovals } from '@/lib/hr';
 import { stopHealthcareOnStripe } from '@/lib/healthcare';
+import { sendRenewalReminders } from '@/lib/yearly-server';
 import { refreshAllShopifySubscriptions } from '@/lib/shopify-billing';
 
 export const runtime = 'nodejs';
@@ -50,6 +51,11 @@ export async function GET(req: Request) {
     await stopHealthcareOnStripe(); // healthcare is never sold through Stripe
   } catch (e) {
     errors.push(`healthcare: ${e instanceof Error ? e.message : e}`);
+  }
+  try {
+    await sendRenewalReminders(); // yearly plans, about 30 days before renewal
+  } catch (e) {
+    errors.push(`renewals: ${e instanceof Error ? e.message : e}`);
   }
   try {
     await deliverWaitingCodes();

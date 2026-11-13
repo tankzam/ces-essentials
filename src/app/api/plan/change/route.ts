@@ -35,6 +35,12 @@ export async function POST(req: Request) {
     throw e;
   }
 
+  // Monthly ↔ yearly switches aren't done here (different billing periods and refund terms).
+  const { yearlyPlanOf } = await import('@/lib/yearly-server');
+  if ((await yearlyPlanOf(plan.subscription.id)) || next.products.some((p) => p.billing_interval === 'year')) {
+    return fail('To switch between monthly and yearly billing, please email us and we will set it up for you.', 409);
+  }
+
   const currentIds = plan.items.map((i) => i.product_id).sort();
   const nextIds = next.products.map((p) => p.id).sort();
   if (JSON.stringify(currentIds) === JSON.stringify(nextIds)) return fail('That is already your plan.');

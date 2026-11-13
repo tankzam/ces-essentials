@@ -15,6 +15,10 @@ export interface ProductRow {
   public: boolean;
   badge: string | null;
   sort_order: number;
+  billing_interval: 'month' | 'year';
+  yearly_of: string | null;
+  shopify_variant_id?: string | null;
+  shopify_selling_plan_id?: string | null;
   product_services: { service_id: string }[];
 }
 
@@ -28,16 +32,20 @@ export async function allProducts(): Promise<ProductRow[]> {
 }
 
 export async function publicCatalog(): Promise<PublicCatalog> {
-  const [products, services, healthcare] = await Promise.all([
+  const [products, services, healthcare, provider] = await Promise.all([
     allProducts(),
     admin().from('services').select('id, name, public_description, sort_order').order('sort_order'),
     healthcareOnSale(),
+    admin().from('settings').select('value').eq('key', 'payment_provider').maybeSingle(),
   ]);
+  const onShopify = provider.data?.value === 'shopify';
   if (services.error) throw services.error;
   return {
     products: products
       .filter((p) => p.active && p.public && (p.kind === 'package' || p.kind === 'addon'))
       .filter((p) => healthcare || !includesHealthcare(p))
+      // A yearly plan shows only once its payment is set up with the current processor.
+      .filter((p) => p.billing_interval !== 'year' || (onShopify ? !!(p.shopify_variant_id && p.shopify_selling_plan_id) : !!p.stripe_price_id))
       .map((p) => ({
         id: p.id,
         name: p.name,
@@ -45,6 +53,8 @@ export async function publicCatalog(): Promise<PublicCatalog> {
         priceCents: p.price_cents,
         badge: p.badge,
         serviceIds: p.product_services.map((s) => s.service_id),
+        interval: p.billing_interval,
+        yearlyOf: p.yearly_of,
       })),
     services: services.data.filter((s) => healthcare || s.id !== HEALTHCARE).map((s) => ({ id: s.id, name: s.name, description: s.public_description })),
   };

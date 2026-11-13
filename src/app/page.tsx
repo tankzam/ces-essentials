@@ -20,15 +20,16 @@ const faqs = [
   ['How do I cancel?', 'From your member area. Your access lasts through the end of your billing month.'],
   ['How fast do I get access?', 'Most services are ready right after payment. Family Legal + Tax Prep takes 24 to 48 hours to become active.'],
   ['When can I use the legal plan and tax prep?', 'Your Family Legal + Tax Prep account takes 24 to 48 hours to become active. If you are not recognized yet, try again after 48 hours.'],
-  ['Are there refunds?', 'No refunds once a billing month starts. You can cancel anytime to stop future charges.'],
+  ['Are there refunds?', 'Monthly plans: no refunds once a billing month starts. You can cancel anytime to stop future charges.'],
 ];
 
 export default async function Home() {
-  const [catalog, user, policy, healthcare] = await Promise.all([
+  const [catalog, user, policy, healthcare, yearlyPolicy] = await Promise.all([
     publicCatalog(),
     currentUser(),
     admin().from('policy_versions').select('version, wording').eq('slug', 'refund_ack').order('version', { ascending: false }).limit(1).single(),
     healthcareOnSale(),
+    admin().from('policy_versions').select('version, wording').eq('slug', 'refund_ack_yearly').order('version', { ascending: false }).limit(1).maybeSingle(),
   ]);
   if (policy.error) throw policy.error;
 
@@ -56,7 +57,7 @@ export default async function Home() {
         </section>
 
         {/* 3–5. Plans, Build your own, Checkout */}
-        <PlanCheckout catalog={catalog} signedInEmail={user?.email ?? null} policy={policy.data} />
+        <PlanCheckout catalog={catalog} signedInEmail={user?.email ?? null} policy={policy.data} yearlyPolicy={yearlyPolicy.data} />
 
         {/* 6. Savings (healthcare only) */}
         {healthcare && <section className="bg-navy text-white">
@@ -97,7 +98,13 @@ export default async function Home() {
         <section id="faq" className="mx-auto max-w-[860px] scroll-mt-4 px-4 pb-14 pt-[72px] sm:px-6">
           <h2 className="mb-8 text-center text-3xl font-extrabold tracking-tight sm:text-4xl">FAQ</h2>
           <div className="flex flex-col gap-3">
-            {(healthcare ? [healthcareFaq, ...faqs] : faqs).map(([q, a]) => (
+            {(healthcare ? [healthcareFaq, ...faqs] : faqs)
+              .map(([q, a]) =>
+                q === 'Are there refunds?' && catalog.products.some((p) => p.interval === 'year')
+                  ? [q, `${a} Yearly plans: cancel within the first 3 months and you pay the monthly price for the months you used, and the rest is refunded. After 3 months there are no refunds.`]
+                  : [q, a],
+              )
+              .map(([q, a]) => (
               <details key={q} className="group rounded-xl border border-line bg-white">
                 <summary className="flex min-h-[60px] cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-[17px] font-semibold [&::-webkit-details-marker]:hidden">
                   <span>{q}</span>

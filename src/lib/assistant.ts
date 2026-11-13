@@ -82,7 +82,8 @@ async function buildKnowledge(): Promise<string> {
       .filter((v, i, a) => a.indexOf(v) === i)
       .join(', ');
 
-  const packages = live.filter((p) => p.public && p.kind === 'package');
+  // A yearly plan is mentioned only once it can actually be bought.
+  const packages = live.filter((p) => p.public && p.kind === 'package' && (p.billing_interval !== 'year' || !!p.stripe_price_id || !!p.shopify_selling_plan_id));
   const addons = live.filter((p) => p.public && p.kind === 'addon');
   const company = live.filter((p) => p.kind === 'company_package');
   const regularFor = (id: string) => live.find((p) => p.id === id.replace(/_company$/, ''));
@@ -98,8 +99,14 @@ async function buildKnowledge(): Promise<string> {
 Website: ${env.siteUrl()}
 Company: Creating Empowerment Solutions LLC (Wyoming). Contact email: abryant@tbfremail.com (Contact page: ${env.siteUrl()}/contact).
 
-## Plans for individuals and families (monthly, U.S. dollars)
-${packages.map((p) => `- ${p.name}: ${money(p.price_cents)} per month. Includes: ${includes(p)}.`).join('\n')}
+## Plans for individuals and families (U.S. dollars)
+${packages
+  .map((p) =>
+    p.billing_interval === 'year'
+      ? `- ${p.name}: ${money(p.price_cents)} per year, paid once a year (works out to ${money(Math.round(p.price_cents / 12))} a month). Includes: ${includes(p)}.`
+      : `- ${p.name}: ${money(p.price_cents)} per month. Includes: ${includes(p)}.`,
+  )
+  .join('\n')}
 
 ## Build your own (à la carte, each billed monthly)
 ${addons.map((p) => `- ${p.name}: ${money(p.price_cents)} per month. Includes: ${includes(p)}.`).join('\n')}
@@ -125,9 +132,10 @@ ${company.map((p) => {
 - You must be 18 or older to buy.
 
 ## Billing and policies
-- All plans are monthly subscriptions that renew automatically until canceled. Sales tax is not added.
+- Plans are subscriptions that renew automatically until canceled: monthly, or yearly for the yearly plan listed above (if one is listed). Sales tax is not added.
+- Yearly plans: If you cancel a yearly plan within the first 3 months of a paid year, you pay the regular monthly price for each month you used (a partial month counts as a full month), the rest of what you paid is refunded to your card, and your access ends when the last of those months ends. After the first 3 months of a paid year there are no refunds, and your access continues through the end of the year you paid for. Yearly members get a reminder email about 30 days before renewal. Switching between monthly and yearly is done by emailing us.
 - Cancel anytime from the member area (My Plan). No future charges; access lasts through the end of the month already paid for.
-- No refunds once a billing month has started, including partial months or unused benefits.
+- Monthly plans: no refunds once a billing month has started, including partial months or unused benefits.
 - Switching plans: anytime in the member area. Moving to a more expensive plan starts right away (prorated difference charged). Moving to a cheaper plan starts on the next billing date.
 - Failed payment: access stays on for 2 days while the charge is retried, then pauses until payment goes through.
 - Activation codes are for personal use only and are never reused or shared.

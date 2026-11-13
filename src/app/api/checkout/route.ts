@@ -101,7 +101,8 @@ export async function POST(req: Request) {
   const { data: policy } = await db
     .from('policy_versions')
     .select('*')
-    .eq('slug', 'refund_ack')
+    // Yearly plans have their own cancellation and refund terms.
+    .eq('slug', resolved.products.some((p) => p.billing_interval === 'year') ? 'refund_ack_yearly' : 'refund_ack')
     .order('version', { ascending: false })
     .limit(1)
     .single();

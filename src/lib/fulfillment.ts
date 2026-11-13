@@ -135,7 +135,7 @@ export async function syncSubscription(stripeSubscriptionId: string): Promise<vo
     const ok =
       price.unit_amount === product.price_cents &&
       price.currency === product.currency &&
-      price.recurring?.interval === 'month' &&
+      price.recurring?.interval === (product.billing_interval ?? 'month') &&
       (orgId ? product.kind === 'company_package' && qty >= MIN_SEATS : product.kind !== 'company_package' && qty === 1);
     if (ok) verified.push(product);
     return [{

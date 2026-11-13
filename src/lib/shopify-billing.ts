@@ -36,7 +36,7 @@ export function shopifyCheckoutUrl(opts: { orderId: string; products: ProductRow
   for (const p of opts.products) {
     const row = p as ProductRow & { shopify_variant_id?: string | null; shopify_selling_plan_id?: string | null };
     if (!row.shopify_variant_id || !row.shopify_selling_plan_id) {
-      throw new ShopifyNotReady(`${p.name} isn't set up for monthly billing in Shopify yet.`);
+      throw new ShopifyNotReady(`${p.name} isn't set up for ${p.billing_interval === 'year' ? 'yearly' : 'monthly'} billing in Shopify yet.`);
     }
     params.append('items[][id]', numericId(row.shopify_variant_id));
     params.append('items[][quantity]', String(opts.quantity ?? 1));
@@ -79,7 +79,7 @@ export async function registerShopifyWebhooks(callbackUrl: string) {
   return out;
 }
 
-/** Reads the monthly selling plan attached to each CES product (set up in the Shopify Subscriptions app). */
+/** Reads the selling plan attached to each CES product (set up in the Shopify Subscriptions app): every 1 month, or every 1 year for yearly plans. */
 export async function syncShopifySellingPlans() {
   const db = admin();
   const products = (await allProducts()) as (ProductRow & { shopify_product_id?: string | null })[];
@@ -102,9 +102,15 @@ export async function syncShopifySellingPlans() {
       { id: p.shopify_product_id },
     );
     const plans = r.product?.sellingPlanGroups.nodes.flatMap((g) => g.sellingPlans.nodes) ?? [];
-    const monthly = plans.find((pl) => pl.billingPolicy?.interval === 'MONTH' && (pl.billingPolicy.intervalCount ?? 1) === 1);
-    await db.from('products').update({ shopify_selling_plan_id: monthly?.id ?? null }).eq('id', p.id);
-    out[p.id] = monthly ? `monthly plan "${monthly.name}"` : plans.length ? 'has plans, but none bill every 1 month' : 'no subscription plan attached';
+    const yearly = p.billing_interval === 'year';
+    const match = plans.find((pl) =>
+      yearly
+        ? (pl.billingPolicy?.interval === 'YEAR' && (pl.billingPolicy.intervalCount ?? 1) === 1) || (pl.billingPolicy?.interval === 'MONTH' && pl.billingPolicy.intervalCount === 12)
+        : pl.billingPolicy?.interval === 'MONTH' && (pl.billingPolicy.intervalCount ?? 1) === 1,
+    );
+    const word = yearly ? 'yearly' : 'monthly';
+    await db.from('products').update({ shopify_selling_plan_id: match?.id ?? null }).eq('id', p.id);
+    out[p.id] = match ? `${word} plan "${match.name}"` : plans.length ? `has plans, but none bill every 1 ${yearly ? 'year' : 'month'}` : 'no subscription plan attached';
   }
   return out;
 }
@@ -134,9 +140,10 @@ export interface ShopifyOrder {
   line_items: ShopifyLine[];
 }
 
-const addMonth = (d: Date) => {
+const addPeriod = (d: Date, yearly: boolean) => {
   const n = new Date(d);
-  n.setUTCMonth(n.getUTCMonth() + 1);
+  if (yearly) n.setUTCFullYear(n.getUTCFullYear() + 1);
+  else n.setUTCMonth(n.getUTCMonth() + 1);
   return n;
 };
 
@@ -206,7 +213,7 @@ export async function handleShopifyPaidOrder(order: ShopifyOrder) {
   const key = orgId ? `shopify:org:${orgId}` : `shopify:member:${memberId}`;
   const { data: existing } = await db.from('subscriptions').select('id, current_period_end').eq('stripe_subscription_id', key).maybeSingle();
   const from = existing?.current_period_end && Date.parse(existing.current_period_end) > Date.now() ? new Date(existing.current_period_end) : new Date();
-  const periodEnd = addMonth(from).toISOString();
+  const periodEnd = addPeriod(from, verified.some((p) => p.billing_interval === 'year')).toISOString();
   const { data: sub, error } = await db
     .from('subscriptions')
     .upsert(

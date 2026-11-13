@@ -9,7 +9,7 @@ export default function Page() {
   return (
     <LegalPage
       title="Terms of Service"
-      date="November 11, 2026"
+      date="November 13, 2026"
       intro={
         <>
           <p>
@@ -90,8 +90,9 @@ export default function Page() {
           body: (
             <>
               <p>
-                Plans are monthly subscriptions billed in U.S. dollars to the card you provide. Your plan renews automatically every month on your
-                billing date, and you authorize us (through our payment processor, Stripe) to charge your card each month until you cancel.
+                Plans are subscriptions billed in U.S. dollars to the card you provide, monthly or, where offered, yearly. Your plan renews
+                automatically on your billing date each month (or each year for a yearly plan), and you authorize us, through our payment processor,
+                to charge your card each period until you cancel. For yearly plans, we email you about 30 days before your plan renews.
               </p>
               <p>
                 The price you pay is the price shown at checkout. If we change the price of your plan, we will tell you before the change applies to
@@ -114,8 +115,14 @@ export default function Page() {
                 through the end of the billing month you already paid for.
               </p>
               <p>
-                <strong>There are no refunds once a billing month has started</strong>, including for partial months or unused benefits. At checkout
-                you confirm that you understand this. See our <Link href="/refund-policy" className="font-semibold text-navy underline">Refund Policy</Link>.
+                <strong>Monthly plans: there are no refunds once a billing month has started</strong>, including for partial months or unused
+                benefits.
+              </p>
+              <p>
+                <strong>Yearly plans:</strong> If you cancel a yearly plan within the first 3 months of a paid year, you pay the regular monthly price for each month you used (a partial month counts as a full month), the rest of what you paid is refunded to your card, and your access ends when the last of those months ends. After the first 3 months of a paid year there are no refunds, and your access continues through the end of the year you paid for.
+              </p>
+              <p>
+                At checkout you confirm that you understand the terms for your plan. See our <Link href="/refund-policy" className="font-semibold text-navy underline">Refund Policy</Link>.
               </p>
             </>
           ),

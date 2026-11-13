@@ -7,6 +7,9 @@ export interface PublicProduct {
   priceCents: number;
   badge: string | null;
   serviceIds: string[];
+  /** Billing period. Yearly plans point at the monthly plan they mirror. */
+  interval?: 'month' | 'year';
+  yearlyOf?: string | null;
 }
 
 export interface PublicService {

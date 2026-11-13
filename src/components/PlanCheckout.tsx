@@ -20,12 +20,18 @@ export function PlanCheckout({
   catalog,
   signedInEmail,
   policy,
+  yearlyPolicy = null,
 }: {
   catalog: PublicCatalog;
   signedInEmail: string | null;
   policy: { version: number; wording: string };
+  /** Checkbox wording for yearly plans (cancellation and refund terms). */
+  yearlyPolicy?: { version: number; wording: string } | null;
 }) {
-  const packages = catalog.products.filter((p) => p.kind === 'package');
+  const allPackages = catalog.products.filter((p) => p.kind === 'package');
+  const packages = allPackages.filter((p) => p.interval !== 'year');
+  const yearlyFor = new Map(allPackages.filter((p) => p.interval === 'year' && p.yearlyOf).map((p) => [p.yearlyOf as string, p]));
+  const [billing, setBilling] = useState<'month' | 'year'>('month');
   const addons = catalog.products.filter((p) => p.kind === 'addon');
   const serviceName = useMemo(() => new Map(catalog.services.map((s) => [s.id, s.name])), [catalog.services]);
   const starter = packages.find((p) => p.id === 'starter');
@@ -42,7 +48,7 @@ export function PlanCheckout({
   useEffect(() => {
     const onPick = (e: Event) => {
       const id = (e as CustomEvent<string>).detail;
-      if (packages.some((p) => p.id === id)) setOrder({ kind: 'plan', id });
+      if (allPackages.some((p) => p.id === id)) setOrder({ kind: 'plan', id });
     };
     window.addEventListener(PICK_EVENT, onPick);
     return () => window.removeEventListener(PICK_EVENT, onPick);
@@ -69,20 +75,31 @@ export function PlanCheckout({
   };
 
   // Order summary
-  let summary = { name: 'No plan selected', price: 0, detail: 'Choose a plan or build your own above.' };
+  let summary = { name: 'No plan selected', price: 0, period: 'mo', detail: 'Choose a plan or build your own above.' };
+  let yearlyChosen = false;
   let selection: Selection | null = null;
   if (order?.kind === 'plan') {
-    const p = packages.find((x) => x.id === order.id)!;
-    summary = { name: p.name, price: p.priceCents, detail: featureList(p.serviceIds, p.id).join(', ') };
+    const p = allPackages.find((x) => x.id === order.id)!;
+    yearlyChosen = p.interval === 'year';
+    const base = yearlyChosen ? allPackages.find((x) => x.id === p.yearlyOf) ?? p : p;
+    summary = {
+      name: yearlyChosen ? `${base.name}, yearly` : p.name,
+      price: p.priceCents,
+      period: yearlyChosen ? 'yr' : 'mo',
+      detail: (yearlyChosen ? `${money(Math.round(p.priceCents / 12))}/month, billed once a year. ` : '') + featureList(p.serviceIds, base.id).join(', '),
+    };
     selection = { plan: p.id };
   } else if (order?.kind === 'custom' && pickedProducts.length) {
     summary = {
       name: 'Your custom plan',
       price: customTotal,
+      period: 'mo',
       detail: [...pickedProducts.map((p) => p.name), serviceName.get(DISCOUNT_CLUB) ?? 'Discount Club'].join(', '),
     };
     selection = { addons: pickedProducts.map((p) => p.id) };
   }
+
+  const activePolicy = yearlyChosen && yearlyPolicy ? yearlyPolicy : policy;
 
   // Per your spec: the button unlocks once a plan is chosen and the box is checked.
   // Account fields are checked when it's clicked, with a message on each field.
@@ -126,7 +143,7 @@ export function PlanCheckout({
         body: JSON.stringify({
           selection,
           agreed: true,
-          policyVersion: policy.version,
+          policyVersion: activePolicy.version,
           account: signedInEmail ? undefined : acct,
         }),
       });
@@ -146,10 +163,34 @@ export function PlanCheckout({
       {/* 3. Plans */}
       <section id="plans" className="mx-auto max-w-[1180px] scroll-mt-4 px-4 pb-10 pt-20 sm:px-6">
         <h2 className="mb-3 text-center text-3xl font-extrabold tracking-tight sm:text-4xl">Choose your plan</h2>
-        <p className="mb-12 text-center text-lg text-muted">Cancel anytime. Your access lasts through the end of your billing month.</p>
+        <p className={`text-center text-lg text-muted ${yearlyFor.size ? 'mb-7' : 'mb-12'}`}>
+          {billing === 'year'
+            ? 'Pay for the year and save. Cancel in the first 3 months and pay only the monthly rate for the months you used.'
+            : 'Cancel anytime. Your access lasts through the end of your billing month.'}
+        </p>
+        {yearlyFor.size > 0 && (
+          <div className="mb-10 flex justify-center">
+            <div role="group" aria-label="Billing" className="inline-flex rounded-full border border-line bg-white p-1.5">
+              {(['month', 'year'] as const).map((b) => (
+                <button
+                  key={b}
+                  type="button"
+                  aria-pressed={billing === b}
+                  onClick={() => setBilling(b)}
+                  className={`min-h-12 rounded-full px-6 text-[17px] font-bold ${billing === b ? 'bg-navy text-white' : 'text-navy'}`}
+                >
+                  {b === 'month' ? 'Monthly' : 'Yearly'}
+                  {b === 'year' && <span className={`ml-2 rounded-full px-2 py-0.5 text-[13px] ${billing === b ? 'bg-amber text-navy' : 'bg-amber-soft text-amber-ink'}`}>Save</span>}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <div className={packages.length > 1 ? 'grid items-stretch gap-7 md:grid-cols-2' : 'mx-auto grid w-full max-w-[560px]'}>
           {packages.map((p) => {
             const dark = p.id === 'all_in_one';
+            const yearly = billing === 'year' ? yearlyFor.get(p.id) : undefined;
+            const saving = yearly ? p.priceCents * 12 - yearly.priceCents : 0;
             return (
               <div
                 key={p.id}
@@ -164,9 +205,17 @@ export function PlanCheckout({
                   <h3 className="text-2xl font-bold">{p.name}</h3>
                   <p className={dark ? 'text-mist' : 'text-muted'}>{TAGLINES[p.id]}</p>
                 </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-5xl font-extrabold tracking-tight">{money(p.priceCents)}</span>
-                  <span className={dark ? 'text-mist' : 'text-muted'}>/month</span>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                    <span className="text-5xl font-extrabold tracking-tight">{money(yearly ? Math.round(yearly.priceCents / 12) : p.priceCents)}</span>
+                    <span className={dark ? 'text-mist' : 'text-muted'}>/month</span>
+                    {yearly && <span className={`text-lg line-through ${dark ? 'text-mist' : 'text-subtle'}`}>{money(p.priceCents)}</span>}
+                  </div>
+                  {yearly && (
+                    <p className={`text-[17px] ${dark ? 'text-mist' : 'text-muted'}`}>
+                      Billed {money(yearly.priceCents)} once a year. <strong className={dark ? 'text-amber' : 'text-[#1F6B45]'}>You save {money(saving)} a year.</strong>
+                    </p>
+                  )}
                 </div>
                 <ul className="flex flex-1 flex-col gap-3">
                   {featureList(p.serviceIds, p.id).map((f) => (
@@ -178,10 +227,10 @@ export function PlanCheckout({
                 </ul>
                 <button
                   type="button"
-                  onClick={() => goCheckout({ kind: 'plan', id: p.id })}
+                  onClick={() => goCheckout({ kind: 'plan', id: yearly ? yearly.id : p.id })}
                   className={`min-h-[52px] rounded-[10px] text-[17px] font-bold ${dark ? 'bg-amber text-navy' : 'border-2 border-navy text-navy'}`}
                 >
-                  Get {p.name}
+                  Get {p.name}{yearly ? ' yearly' : ''}
                 </button>
               </div>
             );
@@ -268,7 +317,7 @@ export function PlanCheckout({
           <div className="flex flex-col gap-2.5 rounded-xl bg-cream px-5 py-4">
             <div className="flex justify-between gap-3 text-[17px] font-bold">
               <span>{summary.name}</span>
-              <span>{money(summary.price)}/mo</span>
+              <span>{money(summary.price)}/{summary.period}</span>
             </div>
             <p className="text-[15px] text-muted">{summary.detail}</p>
           </div>
@@ -311,7 +360,7 @@ export function PlanCheckout({
               className="mt-0.5 h-[22px] w-[22px] shrink-0 accent-navy"
             />
             <span>
-              {policy.wording} <a href="/refund-policy" className="underline">Refund Policy</a>
+              {activePolicy.wording} <a href="/refund-policy" className="underline">Refund Policy</a>
             </span>
           </label>
 
@@ -329,7 +378,7 @@ export function PlanCheckout({
           >
             {busy ? 'Opening secure checkout…' : payHint}
           </button>
-          <p className="text-center text-[13px] text-subtle">Secure card payment. Renews monthly until you cancel.</p>
+          <p className="text-center text-[13px] text-subtle">Secure card payment. Renews {yearlyChosen ? 'yearly' : 'monthly'} until you cancel.</p>
         </div>
       </section>
     </>

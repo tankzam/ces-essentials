@@ -1,7 +1,10 @@
 import 'server-only';
 import { admin } from '@/lib/supabase/admin';
 import { stripe } from '@/lib/stripe';
-import { shopifyGraphql } from '@/lib/shopify';
+import { shopifyGraphql, syncShopifyProducts } from '@/lib/shopify';
+import { syncShopifySellingPlans } from '@/lib/shopify-billing';
+import { includesHealthcare } from '@/lib/healthcare';
+import { STRIPE_SOURCE } from '@/lib/env';
 
 /**
  * Copies each product's name from the products table to Stripe (product name,
@@ -42,4 +45,50 @@ export async function syncProductNames(): Promise<{ updated: string[]; problems:
     }
   }
   return { updated, problems };
+}
+
+/**
+ * Creates anything missing: a Stripe product and recurring price (monthly or
+ * yearly, from the products table) for every active product that Stripe may
+ * sell (never healthcare), then the Shopify products and their subscription
+ * plans. Never changes an existing Stripe price.
+ */
+export async function setUpProducts(): Promise<{ created: string[]; problems: string[] }> {
+  const db = admin();
+  const { data } = await db
+    .from('products')
+    .select('id, name, price_cents, currency, active, billing_interval, stripe_product_id, stripe_price_id, product_services(service_id)')
+    .order('sort_order');
+  const created: string[] = [];
+  const problems: string[] = [];
+  const why = (e: unknown) => (e instanceof Error ? e.message : String(e));
+  for (const p of data ?? []) {
+    if (!p.active || p.stripe_price_id || includesHealthcare(p)) continue;
+    try {
+      const productId =
+        p.stripe_product_id ?? (await stripe().products.create({ name: p.name, metadata: { source: STRIPE_SOURCE, product_id: p.id } })).id;
+      const price = await stripe().prices.create({
+        product: productId,
+        unit_amount: p.price_cents,
+        currency: p.currency,
+        recurring: { interval: p.billing_interval === 'year' ? 'year' : 'month' },
+        metadata: { source: STRIPE_SOURCE, product_id: p.id },
+      });
+      await db.from('products').update({ stripe_product_id: productId, stripe_price_id: price.id }).eq('id', p.id);
+      created.push(`Stripe: ${p.name} (${p.billing_interval === 'year' ? 'yearly' : 'monthly'})`);
+    } catch (e) {
+      problems.push(`Stripe ${p.name}: ${why(e)}`);
+    }
+  }
+  try {
+    const results = await syncShopifyProducts();
+    for (const r of results) {
+      if (r.action === 'created') created.push(`Shopify: ${data?.find((p) => p.id === r.id)?.name ?? r.id}`);
+      if (r.action === 'error') problems.push(`Shopify ${r.id}: ${r.error}`);
+    }
+    await syncShopifySellingPlans();
+  } catch (e) {
+    problems.push(`Shopify: ${why(e)}`);
+  }
+  return { created, problems };
 }

@@ -10,15 +10,20 @@ export function PlanManager({
   currentIds,
   currentTotal,
   canceled,
+  earlyCanceled = false,
   canChange,
   accessEnds,
+  yearly = null,
 }: {
   catalog: PublicCatalog;
   currentIds: string[];
   currentTotal: number;
   canceled: boolean;
+  earlyCanceled?: boolean;
   canChange: boolean;
   accessEnds: string;
+  /** Yearly plan: what cancelling now means (3-month refund rule). */
+  yearly?: { eligible: boolean; refund: string; monthsUsed: number; accessUntil: string } | null;
 }) {
   const router = useRouter();
   const packages = catalog.products.filter((p) => p.kind === 'package');
@@ -67,7 +72,9 @@ export function PlanManager({
         </p>
       )}
 
-      {canceled ? (
+      {earlyCanceled ? (
+        <p className="text-[15px] text-muted">Your yearly plan was canceled with a refund. You can buy a new plan any time from the home page.</p>
+      ) : canceled ? (
         <div className="flex flex-col gap-3">
           <p className="text-[15px] text-muted">Changed your mind? Keep your plan and it renews as usual.</p>
           <button type="button" disabled={busy} onClick={() => call('/api/plan/resume')} className="min-h-12 self-start rounded-[10px] bg-amber px-5 font-bold text-navy">
@@ -76,28 +83,35 @@ export function PlanManager({
         </div>
       ) : (
         <>
+          {yearly && <p className="text-[15px] text-muted">You’re on yearly billing. To change items or switch to monthly, please email us and we’ll set it up.</p>}
           <div className="flex flex-wrap gap-3">
-            {packages
+            {!yearly && packages
               .filter((p) => !(onPackage && currentIds[0] === p.id))
               .map((p) => (
                 <button key={p.id} type="button" disabled={busy || !canChange} className={btn} onClick={() => change({ plan: p.id }, p.priceCents)}>
                   {p.priceCents > currentTotal ? 'Upgrade' : 'Switch'} to {p.name} ({money(p.priceCents)})
                 </button>
               ))}
-            <button type="button" disabled={busy || !canChange} className={btn} onClick={() => setEditing((v) => !v)}>
-              Change items
-            </button>
+            {!yearly && (
+              <button type="button" disabled={busy || !canChange} className={btn} onClick={() => setEditing((v) => !v)}>
+                Change items
+              </button>
+            )}
             <button type="button" disabled={busy} onClick={() => setConfirmCancel(true)} className="min-h-12 rounded-[10px] border border-danger bg-white px-5 font-bold text-danger">
               Cancel plan
             </button>
           </div>
 
-          {!canChange && <p className="text-[15px] text-muted">You can change your plan once your payment is up to date.</p>}
+          {!canChange && !yearly && <p className="text-[15px] text-muted">You can change your plan once your payment is up to date.</p>}
 
           {confirmCancel && (
             <div role="alertdialog" aria-label="Confirm cancellation" className="flex flex-col gap-3 rounded-xl border border-danger bg-danger-soft p-5">
               <p className="font-semibold text-[#7A1F15]">
-                If you cancel, you won’t be charged again and you keep access through {accessEnds}. No refunds for the current month.
+                {yearly
+                  ? yearly.eligible
+                    ? `You’re within the first 3 months of your yearly plan. If you cancel now, you pay the monthly price for ${yearly.monthsUsed} month${yearly.monthsUsed === 1 ? '' : 's'}, ${yearly.refund} is refunded to your card, and you keep access through ${yearly.accessUntil}.`
+                    : `If you cancel, you won’t be charged again and you keep access through ${accessEnds}. After the first 3 months of a yearly plan there are no refunds.`
+                  : `If you cancel, you won’t be charged again and you keep access through ${accessEnds}. No refunds for the current month.`}
               </p>
               <div className="flex flex-wrap gap-3">
                 <button type="button" disabled={busy} onClick={() => call('/api/plan/cancel')} className="min-h-12 rounded-[10px] bg-danger px-5 font-bold text-white">
