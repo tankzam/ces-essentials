@@ -22,7 +22,7 @@ export default async function HrLayout({ children }: { children: React.ReactNode
             { href: '/hr/employees', label: 'Employees' },
             { href: '/hr/upload', label: 'Upload' },
             { href: '/hr/billing', label: 'Billing' },
-            { href: '/hr/benefits', label: 'Benefits Guide' },
+            { href: '/hr/benefits', label: 'Plan Guides' },
           ]}
         />
         <main className="flex min-w-0 flex-1 flex-col gap-6">{children}</main>

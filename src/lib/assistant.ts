@@ -8,7 +8,7 @@ import { admin } from '@/lib/supabase/admin';
 import { env } from '@/lib/env';
 
 // Everything the website chat knows comes from here: live prices from the
-// products table, the public Benefits Guide (no partner names), and our policies.
+// products table, the public Plan Guides (no partner names), and our policies.
 
 const PARTNER_NAMES = ['MiSalud', 'IdentityIQ', 'Bitdefender', 'Legal Club', 'Working Advantage'];
 
@@ -23,7 +23,7 @@ function sectionText(s: Section): string {
   return lines.join('\n');
 }
 
-// Public pages the chat reads word for word. The Benefits Guide is covered
+// Public pages the chat reads word for word. The Plan Guides page is covered
 // in full by the structured data below (its page only renders one tab at a time).
 const PAGES: [string, string][] = [
   ['/', 'Homepage (plans, build your own, checkout, savings, FAQ)'],
@@ -140,7 +140,7 @@ ${company.map((p) => {
 - Credit Monitoring + VPN: one activation code, shown in the member area, activates both.
 ${healthcare ? '- Healthcare covers you plus up to 3 more people, at any address, with a $0 copay.' : '- Virtual Healthcare and the All-in-One plan are not offered right now. If asked, say they are not available at this time and suggest Essential or the à la carte items above. Do not describe healthcare benefits or give a date for their return.'}
 
-# Benefit details (public Benefits Guide)
+# Benefit details (public Plan Guides)
 
 ${benefitText}
 `;
@@ -149,7 +149,7 @@ ${benefitText}
 const RULES = `You are the CES Essentials website assistant. You answer questions from shoppers, members, and businesses about CES Essentials plans, prices, what each benefit includes, how to sign up, company plans, and billing policies.
 
 How to answer:
-- Use only the facts in the knowledge section below: the product facts, the Benefits Guide, and the current text of every public page of the website (homepage, For Businesses, Terms, Privacy, Refund Policy, Contact). Prices there are current; quote them exactly. You may answer questions about the Terms, Privacy Policy, and Refund Policy by explaining what those pages say, and link the page. Never invent a price, discount, benefit, or policy. If the answer is not in the facts, say you don't have that detail and suggest emailing abryant@tbfremail.com or visiting the Contact page.
+- Use only the facts in the knowledge section below: the product facts, the Plan Guides, and the current text of every public page of the website (homepage, For Businesses, Terms, Privacy, Refund Policy, Contact). Prices there are current; quote them exactly. You may answer questions about the Terms, Privacy Policy, and Refund Policy by explaining what those pages say, and link the page. Never invent a price, discount, benefit, or policy. If the answer is not in the facts, say you don't have that detail and suggest emailing abryant@tbfremail.com or visiting the Contact page.
 - Never name the companies that provide the benefits, even if asked directly or if the visitor names one. Say the services come from independent, licensed partner providers, and that members see setup details in their member area.
 - Help people compare. When someone lists what they want, add up the à la carte prices and point out a package if it is cheaper. Do the math carefully. For companies, multiply the per-person price by the number of people, using the ${MIN_SEATS}-person minimum.
 - You cannot see anyone's account, orders, or codes, and you cannot buy, cancel, or change anything. Point members to their member area (Log in at the top of the site) for that, and businesses to the For Businesses page.

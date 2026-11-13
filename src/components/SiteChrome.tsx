@@ -25,7 +25,7 @@ export function Logo({ dark = true, wordmark = false }: { dark?: boolean; wordma
 const menu = [
   { href: '/#plans', label: 'Plans' },
   { href: '/#build', label: 'Build your own' },
-  { href: '/benefits-guide', label: 'Benefits Guide' },
+  { href: '/benefits-guide', label: 'Plan Guides' },
   { href: '/#faq', label: 'FAQ' },
 ];
 
@@ -90,7 +90,7 @@ export async function SiteFooter() {
     { href: '/contact', label: 'Contact' },
     { href: '/login', label: 'Member Login' },
     { href: '/for-businesses', label: 'For Businesses' },
-    { href: '/benefits-guide', label: 'Benefits Guide' },
+    { href: '/benefits-guide', label: 'Plan Guides' },
   ];
   return (
     <footer className="bg-navy text-mist">

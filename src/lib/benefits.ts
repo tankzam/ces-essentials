@@ -1,4 +1,4 @@
-// Benefits Guide content, from the CES Essentials design.
+// Plan Guides content, from the CES Essentials design.
 // Public view never shows partner names or app links.
 
 export type BenefitsView = 'public' | 'member' | 'hr';

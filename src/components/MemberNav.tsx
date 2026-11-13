@@ -8,7 +8,7 @@ const tabs = [
   { href: '/member/plan', label: 'My Plan' },
   { href: '/member/billing', label: 'Billing' },
   { href: '/member/account', label: 'Account' },
-  { href: '/member/benefits', label: 'Benefits Guide' },
+  { href: '/member/benefits', label: 'Plan Guides' },
 ];
 
 export function MemberNav({ greeting, isAdmin = false }: { greeting: string; isAdmin?: boolean }) {

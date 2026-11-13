@@ -4,7 +4,7 @@ import { healthcareOnSale } from '@/lib/healthcare';
 
 export const dynamic = 'force-dynamic';
 
-export const metadata = { title: 'CES Essentials Benefits Guide' };
+export const metadata = { title: 'CES Essentials Plan Guides' };
 
 /** Every service, one per page, ready to save as PDF. */
 export default async function Page() {
