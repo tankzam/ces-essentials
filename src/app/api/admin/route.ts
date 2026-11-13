@@ -81,8 +81,14 @@ export async function POST(req: Request) {
       const { syncShopifySellingPlans } = await import('@/lib/shopify-billing');
       const plans = await syncShopifySellingPlans();
       const missing = Object.entries(plans).filter(([, v]) => !v.startsWith('monthly') && !v.startsWith('yearly')).map(([k]) => k);
-      await logActivity(me, 'refreshed Shopify subscription plans');
-      return NextResponse.json({ ok: missing.length === 0, message: missing.length ? `Still missing a subscription plan: ${missing.join(', ')}` : 'Every product has its Shopify subscription plan.' }, { status: missing.length ? 409 : 200 });
+      await logActivity(me, 'refreshed Shopify subscription plans', undefined, plans);
+      return NextResponse.json(
+        {
+          ok: missing.length === 0,
+          message: missing.length ? `Still missing a subscription plan. ${missing.map((k) => `${k}: ${plans[k]}`).join(' | ')}` : 'Every product has its Shopify subscription plan.',
+        },
+        { status: missing.length ? 409 : 200 },
+      );
     }
 
     case 'set_provider': {

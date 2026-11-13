@@ -105,12 +105,20 @@ export async function syncShopifySellingPlans() {
     const yearly = p.billing_interval === 'year';
     const match = plans.find((pl) =>
       yearly
-        ? (pl.billingPolicy?.interval === 'YEAR' && (pl.billingPolicy.intervalCount ?? 1) === 1) || (pl.billingPolicy?.interval === 'MONTH' && pl.billingPolicy.intervalCount === 12)
+        ? (pl.billingPolicy?.interval === 'YEAR' && (pl.billingPolicy.intervalCount ?? 1) === 1) ||
+          (pl.billingPolicy?.interval === 'MONTH' && pl.billingPolicy.intervalCount === 12) ||
+          (pl.billingPolicy?.interval === 'WEEK' && pl.billingPolicy.intervalCount === 52) ||
+          (pl.billingPolicy?.interval === 'DAY' && pl.billingPolicy.intervalCount === 365)
         : pl.billingPolicy?.interval === 'MONTH' && (pl.billingPolicy.intervalCount ?? 1) === 1,
     );
     const word = yearly ? 'yearly' : 'monthly';
     await db.from('products').update({ shopify_selling_plan_id: match?.id ?? null }).eq('id', p.id);
-    out[p.id] = match ? `${word} plan "${match.name}"` : plans.length ? `has plans, but none bill every 1 ${yearly ? 'year' : 'month'}` : 'no subscription plan attached';
+    const found = plans.map((pl) => `"${pl.name}" bills every ${pl.billingPolicy?.intervalCount ?? '?'} ${(pl.billingPolicy?.interval ?? 'unknown').toLowerCase()}`).join('; ');
+    out[p.id] = match
+      ? `${word} plan "${match.name}"`
+      : plans.length
+        ? `has plans, but none bill every 1 ${yearly ? 'year' : 'month'} (found: ${found})`
+        : 'no subscription plan attached to this product in Shopify';
   }
   return out;
 }
