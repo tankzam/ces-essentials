@@ -7,6 +7,7 @@ import { env, STRIPE_SOURCE } from '@/lib/env';
 import { resolveSelection, SelectionError } from '@/lib/catalog';
 import { clientIp } from '@/lib/request';
 import { ageOn, identityColumns, identitySchema, profileComplete } from '@/lib/identity';
+import { businessOnly } from '@/lib/sales';
 import { paymentProvider, shopifyCheckoutUrl, ShopifyNotReady } from '@/lib/shopify-billing';
 
 export const runtime = 'nodejs';
@@ -27,6 +28,9 @@ const Body = z.object({
 const fail = (error: string, status = 400) => NextResponse.json({ error }, { status });
 
 export async function POST(req: Request) {
+  if (await businessOnly()) {
+    return NextResponse.json({ error: 'CES Essentials is offered to businesses right now. Get company pricing on our home page.' }, { status: 403 });
+  }
   const parsed = Body.safeParse(await req.json().catch(() => null));
   if (!parsed.success) {
     const agreed = parsed.error.issues.some((i) => i.path[0] === 'agreed');

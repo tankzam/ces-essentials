@@ -45,13 +45,26 @@ const SERVICES: { id: string; description: string; icon: React.ReactNode }[] = [
 ];
 
 /** `part="hero"` renders the header; `part="services"` the service cards (placed inside <main>). */
-export function CESRefreshIntro({ catalog, healthcare, nav, part }: { catalog: PublicCatalog; healthcare: boolean; nav?: React.ReactNode; part: 'hero' | 'services' }) {
-  const essential = catalog.products.find((p) => p.id === 'starter');
+export function CESRefreshIntro({
+  catalog,
+  healthcare,
+  nav,
+  part,
+  business,
+}: {
+  catalog: PublicCatalog;
+  healthcare: boolean;
+  nav?: React.ReactNode;
+  part: 'hero' | 'services';
+  /** Business-only site: the company plan shown instead of individual plans. */
+  business?: { name: string; priceCents: number; serviceIds: string[] } | null;
+}) {
+  const essential = business ? { id: 'starter_company', kind: 'package' as const, badge: null, ...business } : catalog.products.find((p) => p.id === 'starter');
   const name = new Map(catalog.services.map((s) => [s.id, s.name]));
   const addon = new Map(catalog.products.filter((p) => p.kind === 'addon').map((p) => [p.serviceIds[0], p]));
   const cards = SERVICES.filter((s) => name.has(s.id));
   const tag = (id: string) => {
-    if (id === 'discount_club') return 'Free with any plan';
+    if (id === 'discount_club') return business ? 'Included' : 'Free with any plan';
     if (essential?.serviceIds.includes(id)) return `In the ${essential.name} plan`;
     const a = addon.get(id);
     return a ? `Add-on · ${money(a.priceCents)}/mo` : null;
@@ -66,21 +79,30 @@ export function CESRefreshIntro({ catalog, healthcare, nav, part }: { catalog: P
         <div className="ces-refresh-hero__content">
           {essential && (
             <p className="ces-refresh-hero__eyebrow">
-              <span aria-hidden="true" /> {essential.name} plan · {money(essential.priceCents)}/month
+              <span aria-hidden="true" />{' '}
+              {business ? `For teams of 5 or more · ${money(essential.priceCents)} per person/month` : `${essential.name} plan · ${money(essential.priceCents)}/month`}
             </p>
           )}
           <h1 id="ces-refresh-title">
-            {healthcare ? 'Healthcare, legal help, and protection for your whole family.' : 'Legal help, tax prep, and protection for your whole family.'}
+            {business
+              ? 'Legal help, tax prep, and protection for your whole team.'
+              : healthcare
+                ? 'Healthcare, legal help, and protection for your whole family.'
+                : 'Legal help, tax prep, and protection for your whole family.'}
           </h1>
           <p className="ces-refresh-hero__copy">
-            {healthcare
-              ? `Unlimited $0-copay doctor visits, a family legal plan, tax prep, and credit monitoring, starting at ${money(essential?.priceCents ?? 0)} a month.`
-              : `A family legal plan, tax prep, credit monitoring, and a VPN, starting at ${money(essential?.priceCents ?? 0)} a month.`}
+            {business
+              ? `Give every employee a family legal plan, tax prep, credit monitoring with a VPN, and more, for ${money(essential?.priceCents ?? 0)} per person a month.`
+              : healthcare
+                ? `Unlimited $0-copay doctor visits, a family legal plan, tax prep, and credit monitoring, starting at ${money(essential?.priceCents ?? 0)} a month.`
+                : `A family legal plan, tax prep, credit monitoring, and a VPN, starting at ${money(essential?.priceCents ?? 0)} a month.`}
           </p>
-          <a className="ces-refresh-button" href="#plans">
-            See plans <span aria-hidden="true">→</span>
+          <a className="ces-refresh-button" href={business ? '#get-pricing' : '#plans'}>
+            {business ? 'Get company pricing' : 'See plans'} <span aria-hidden="true">→</span>
           </a>
-          <p className="ces-refresh-hero__note">Cancel anytime. Your access lasts through the end of your billing month.</p>
+          <p className="ces-refresh-hero__note">
+            {business ? 'One simple monthly bill. Add or remove people anytime.' : 'Cancel anytime. Your access lasts through the end of your billing month.'}
+          </p>
         </div>
       </header>
   );
@@ -89,11 +111,15 @@ export function CESRefreshIntro({ catalog, healthcare, nav, part }: { catalog: P
       <section className="ces-refresh-services" id="services" aria-labelledby="ces-refresh-services-title">
         <div className="ces-refresh-services__intro">
           <p className="ces-refresh-kicker">What&apos;s included</p>
-          <h2 id="ces-refresh-services-title">{words[cards.length] ?? cards.length} essential services for your family.</h2>
+          <h2 id="ces-refresh-services-title">
+            {words[cards.length] ?? cards.length} essential services for your {business ? 'team' : 'family'}.
+          </h2>
           <p>
-            {essential
-              ? `The ${essential.name} plan includes all five for one monthly price. Or pick only what you want and build your own plan.`
-              : 'Pick a plan or build your own.'}
+            {business
+              ? `Every employee on the ${essential?.name ?? 'Essential'} plan gets all ${(words[cards.length] ?? String(cards.length)).toLowerCase()}.`
+              : essential
+                ? `The ${essential.name} plan includes all five for one monthly price. Or pick only what you want and build your own plan.`
+                : 'Pick a plan or build your own.'}
           </p>
         </div>
         <ul className="ces-refresh-services__grid" data-count={cards.length}>

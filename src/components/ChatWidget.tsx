@@ -7,12 +7,12 @@ type Msg = { role: 'user' | 'assistant'; content: string };
 
 const SUGGESTIONS = [
   'What does the Essential plan include?',
-  'What can I buy à la carte?',
+  'How much is it per employee?',
   'What does the legal plan include?',
-  'How does pricing work for my company of 12 people?',
+  'What would 12 employees cost?',
 ];
 
-const GREETING = 'Hi! Ask me anything about CES Essentials plans, prices, and benefits, for you, your family, or your business.';
+const GREETING = 'Hi! Ask me anything about CES Essentials for your business: plans, pricing, and what your employees get.';
 
 export function ChatWidget() {
   const pathname = usePathname();

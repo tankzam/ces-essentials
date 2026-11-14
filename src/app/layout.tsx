@@ -6,9 +6,9 @@ import { ChatWidget } from '@/components/ChatWidget';
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 
 export const metadata: Metadata = {
-  title: 'CES Essentials — Legal help, tax prep, and protection for your whole family',
+  title: 'CES Essentials — Legal help, tax prep, and protection for your whole team',
   description:
-    'A family legal plan, tax prep, credit monitoring, and a VPN, starting at $25.99 a month.',
+    'Company benefits for teams of 5 or more: a family legal plan, tax prep, credit monitoring with a VPN, CESgpt, Streamify Me, and the Discount Club.',
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://cesessentials.com'),
 };
 

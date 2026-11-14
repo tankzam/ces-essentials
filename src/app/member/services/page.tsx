@@ -1,3 +1,4 @@
+import { businessOnly } from '@/lib/sales';
 import Link from 'next/link';
 import { CopyButton } from '@/components/CopyButton';
 import { admin } from '@/lib/supabase/admin';
@@ -9,6 +10,7 @@ import { formatDate } from '@/lib/money';
 export const metadata = { title: 'My Services — CES Essentials' };
 
 export default async function Page() {
+  const biz = await businessOnly();
   const user = (await currentUser())!;
   const db = admin();
   const [{ data: profile }, { data: ents }, { data: services }, plan] = await Promise.all([
@@ -56,7 +58,11 @@ export default async function Page() {
       {cards.length === 0 ? (
         <div className="rounded-2xl border border-line bg-white p-8">
           <p className="mb-4 text-lg">You don’t have any active services right now.</p>
-          <Link href="/#plans" className="inline-flex min-h-12 items-center rounded-[10px] bg-amber px-6 font-bold text-navy">See plans</Link>
+          {biz ? (
+            <p className="text-[17px] text-muted">If your company provides CES Essentials, ask your HR contact to add you. Questions? <Link href="/contact" className="font-semibold underline">Contact us</Link>.</p>
+          ) : (
+            <Link href="/#plans" className="inline-flex min-h-12 items-center rounded-[10px] bg-amber px-6 font-bold text-navy">See plans</Link>
+          )}
         </div>
       ) : (
         <div className="grid gap-[18px] md:grid-cols-2">

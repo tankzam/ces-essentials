@@ -25,7 +25,7 @@ export function LoginForm({ next }: { next?: string }) {
       {mode === 'password' ? <PasswordLogin next={next} /> : <CodeLogin next={next} />}
       <div className="flex flex-wrap justify-between gap-2 text-[15px]">
         <Link href="/forgot-password" className="inline-flex min-h-11 items-center underline">Forgot password?</Link>
-        <Link href="/#plans" className="inline-flex min-h-11 items-center underline">Not a member? See plans</Link>
+        <Link href="/" className="inline-flex min-h-11 items-center underline">Not a member yet? Visit our home page</Link>
       </div>
     </div>
   );

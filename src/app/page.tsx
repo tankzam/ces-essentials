@@ -5,6 +5,9 @@ import { publicCatalog } from '@/lib/catalog';
 import { admin } from '@/lib/supabase/admin';
 import { currentUser } from '@/lib/supabase/server';
 import { healthcareOnSale } from '@/lib/healthcare';
+import { businessOnly } from '@/lib/sales';
+import { companyPlans } from '@/lib/company-pricing';
+import { BusinessHome } from '@/components/BusinessHome';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +27,10 @@ const faqs = [
 ];
 
 export default async function Home() {
+  if (await businessOnly()) {
+    const [catalog, healthcare, { plans, minSeats }] = await Promise.all([publicCatalog(), healthcareOnSale(), companyPlans()]);
+    return <BusinessHome catalog={catalog} healthcare={healthcare} plans={plans} minSeats={minSeats} />;
+  }
   const [catalog, user, policy, healthcare, yearlyPolicy] = await Promise.all([
     publicCatalog(),
     currentUser(),

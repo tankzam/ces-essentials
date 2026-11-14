@@ -1,6 +1,7 @@
 import { TopNav, SiteFooter } from '@/components/SiteChrome';
 import { BenefitsGuide } from '@/components/BenefitsGuide';
-import { benefitServices, withoutHealthcare } from '@/lib/benefits';
+import { benefitServices, forBusiness, withoutHealthcare } from '@/lib/benefits';
+import { businessOnly } from '@/lib/sales';
 import { healthcareOnSale } from '@/lib/healthcare';
 
 export const dynamic = 'force-dynamic';
@@ -8,7 +9,7 @@ export const dynamic = 'force-dynamic';
 export const metadata = { title: 'Plan Guides — CES Essentials' };
 
 export default async function Page() {
-  const healthcare = await healthcareOnSale();
+  const [healthcare, biz] = await Promise.all([healthcareOnSale(), businessOnly()]);
   return (
     <div>
       <header className="bg-navy text-white print:hidden">
@@ -21,7 +22,7 @@ export default async function Page() {
         </section>
       </header>
       <main className="mx-auto max-w-[1180px] px-4 py-10 sm:px-6">
-        <BenefitsGuide services={(healthcare ? benefitServices('public') : withoutHealthcare(benefitServices('public')))} />
+        <BenefitsGuide services={(biz ? forBusiness : (x: ReturnType<typeof benefitServices>) => x)(healthcare ? benefitServices('public') : withoutHealthcare(benefitServices('public')))} />
       </main>
       <div className="print:hidden">
         <SiteFooter />

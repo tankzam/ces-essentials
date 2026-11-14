@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { Logo, SiteFooter } from '@/components/SiteChrome';
 import { BusinessForm } from '@/components/BusinessForm';
 import { healthcareOnSale } from '@/lib/healthcare';
+import { businessOnly } from '@/lib/sales';
+import { redirect } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,6 +18,8 @@ const features = (healthcare: boolean) => [
 ];
 
 export default async function Page() {
+  // Business-only site: the homepage is the business page.
+  if (await businessOnly()) redirect('/#get-pricing');
   const healthcare = await healthcareOnSale();
   return (
     <div>

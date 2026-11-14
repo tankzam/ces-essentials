@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { currentUser } from '@/lib/supabase/server';
 import { homeFor } from '@/lib/accounts';
 import { healthcareOnSale } from '@/lib/healthcare';
+import { businessOnly } from '@/lib/sales';
 import { logout } from '@/app/(auth)/actions';
 
 export function Logo({ dark = true, wordmark = false }: { dark?: boolean; wordmark?: boolean }) {
@@ -22,6 +23,13 @@ export function Logo({ dark = true, wordmark = false }: { dark?: boolean; wordma
   );
 }
 
+const bizMenu = [
+  { href: '/#how', label: 'How it works' },
+  { href: '/#services', label: "What's included" },
+  { href: '/benefits-guide', label: 'Plan Guides' },
+  { href: '/#faq', label: 'FAQ' },
+];
+
 const menu = [
   { href: '/#plans', label: 'Plans' },
   { href: '/#build', label: 'Build your own' },
@@ -29,16 +37,16 @@ const menu = [
   { href: '/#faq', label: 'FAQ' },
 ];
 
-function MenuLinks({ stacked = false, accountHref }: { stacked?: boolean; accountHref: string | null }) {
+function MenuLinks({ stacked = false, accountHref, biz = false }: { stacked?: boolean; accountHref: string | null; biz?: boolean }) {
   return (
     <>
-      {menu.map((m) => (
+      {(biz ? bizMenu : menu).map((m) => (
         <Link key={m.href} href={m.href} className={`inline-flex min-h-11 items-center text-[15px] text-[#E6E7F0] no-underline hover:text-white ${stacked ? 'py-1' : ''}`}>
           {m.label}
         </Link>
       ))}
-      <Link href="/for-businesses" className={`inline-flex min-h-11 items-center text-[15px] font-semibold text-amber no-underline ${stacked ? 'py-1' : ''}`}>
-        For Businesses
+      <Link href={biz ? '/#get-pricing' : '/for-businesses'} className={`inline-flex min-h-11 items-center text-[15px] font-semibold text-amber no-underline ${stacked ? 'py-1' : ''}`}>
+        {biz ? 'Get pricing' : 'For Businesses'}
       </Link>
       {accountHref ? (
         <>
@@ -63,18 +71,19 @@ function MenuLinks({ stacked = false, accountHref }: { stacked?: boolean; accoun
 export async function TopNav({ wordmark = false }: { wordmark?: boolean } = {}) {
   const user = await currentUser();
   const accountHref = user ? await homeFor(user.id) : null;
+  const biz = await businessOnly();
   return (
     <div className="mx-auto flex max-w-[1180px] items-center justify-between gap-4 px-4 py-5 sm:px-6">
       <Logo wordmark={wordmark} />
       <nav aria-label="Main" className="hidden items-center gap-6 lg:flex">
-        <MenuLinks accountHref={accountHref} />
+        <MenuLinks accountHref={accountHref} biz={biz} />
       </nav>
       <details className="group relative lg:hidden">
         <summary className="flex min-h-11 cursor-pointer list-none items-center rounded-lg border border-[#3A3D5C] px-4 font-semibold text-white [&::-webkit-details-marker]:hidden">
           Menu
         </summary>
         <nav aria-label="Main" className="absolute right-0 z-20 mt-2 flex w-64 flex-col gap-2 rounded-xl bg-navy-2 p-4 shadow-xl">
-          <MenuLinks stacked accountHref={accountHref} />
+          <MenuLinks stacked accountHref={accountHref} biz={biz} />
         </nav>
       </details>
     </div>
@@ -83,13 +92,14 @@ export async function TopNav({ wordmark = false }: { wordmark?: boolean } = {}) 
 
 export async function SiteFooter() {
   const healthcare = await healthcareOnSale();
+  const biz = await businessOnly();
   const links = [
     { href: '/terms', label: 'Terms' },
     { href: '/privacy', label: 'Privacy' },
     { href: '/refund-policy', label: 'Refund Policy' },
     { href: '/contact', label: 'Contact' },
     { href: '/login', label: 'Member Login' },
-    { href: '/for-businesses', label: 'For Businesses' },
+    biz ? { href: '/#get-pricing', label: 'Get company pricing' } : { href: '/for-businesses', label: 'For Businesses' },
     { href: '/benefits-guide', label: 'Plan Guides' },
   ];
   return (

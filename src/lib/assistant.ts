@@ -1,6 +1,7 @@
 import 'server-only';
 import { allProducts } from '@/lib/catalog';
-import { BENEFIT_ORDER, benefitServices, withoutHealthcare, type Section } from '@/lib/benefits';
+import { BENEFIT_ORDER, benefitServices, forBusiness, withoutHealthcare, type Section } from '@/lib/benefits';
+import { businessOnly } from '@/lib/sales';
 import { healthcareOnSale, includesHealthcare } from '@/lib/healthcare';
 import { MIN_SEATS } from '@/lib/company';
 import { money } from '@/lib/money';
@@ -68,11 +69,19 @@ async function websitePages(): Promise<{ text: string; complete: boolean }> {
   return { text: results.filter(Boolean).join('\n\n'), complete: results.every(Boolean) };
 }
 
+const BUSINESS_ONLY_NOTE = `## Who can buy
+- CES Essentials is sold to businesses and organizations with 5 or more people. Individuals and families cannot buy a plan on the website right now.
+- If someone asks as an individual, explain this kindly and suggest they ask their employer about CES Essentials, or share the business form on the home page with their company.
+- People who already have an individual plan keep it, and manage it from their member area.
+
+`;
+
 async function buildKnowledge(): Promise<string> {
-  const [products, services, healthcare] = await Promise.all([
+  const [products, services, healthcare, biz] = await Promise.all([
     allProducts(),
     admin().from('services').select('id, name, public_description, sort_order').order('sort_order'),
     healthcareOnSale(),
+    businessOnly(),
   ]);
   if (services.error) throw services.error;
   const serviceName = new Map(services.data.map((s) => [s.id, s.name as string]));
@@ -88,7 +97,8 @@ async function buildKnowledge(): Promise<string> {
   const company = live.filter((p) => p.kind === 'company_package');
   const regularFor = (id: string) => live.find((p) => p.id === id.replace(/_company$/, ''));
 
-  const guide = healthcare ? benefitServices('public') : withoutHealthcare(benefitServices('public'));
+  const baseGuide = healthcare ? benefitServices('public') : withoutHealthcare(benefitServices('public'));
+  const guide = biz ? forBusiness(baseGuide) : baseGuide;
   const benefitText = BENEFIT_ORDER.filter((id) => guide[id]).map((id) => {
     const b = guide[id];
     return [`## ${b.name} (${b.group})`, b.lead, ...b.sections.map(sectionText)].join('\n\n');
@@ -99,7 +109,7 @@ async function buildKnowledge(): Promise<string> {
 Website: ${env.siteUrl()}
 Company: Creating Empowerment Solutions LLC (Wyoming). Contact email: abryant@tbfremail.com (Contact page: ${env.siteUrl()}/contact).
 
-## Plans for individuals and families (U.S. dollars)
+${biz ? BUSINESS_ONLY_NOTE : `## Plans for individuals and families (U.S. dollars)
 ${packages
   .map((p) =>
     p.billing_interval === 'year'
@@ -113,25 +123,24 @@ ${addons.map((p) => `- ${p.name}: ${money(p.price_cents)} per month. Includes: $
 - Any combination can be picked. If the picks cost more than a package that covers them, the website shows a "Save $X" tip pointing to that package.
 - The Discount Club is free with any purchase; it cannot be bought on its own.
 
-## Company plans (businesses and organizations)
+`}## Company plans (businesses and organizations)
 ${company.map((p) => {
     const reg = regularFor(p.id);
     return `- ${p.name}: ${money(p.price_cents)} per person per month${reg ? ` (regular price ${money(reg.price_cents)})` : ''}. Includes: ${includes(p)}.`;
   }).join('\n')}
 - Minimum ${MIN_SEATS} people. The company is billed monthly for its active people, with a ${MIN_SEATS}-person minimum (fewer than ${MIN_SEATS} people are billed as ${MIN_SEATS}).
 - One plan for the whole team (${company.map((p) => p.name.replace(' (Company)', '')).join(' or ')}). À la carte items are not offered as company plans.
-- How to sign up: fill out the form on the For Businesses page (${env.siteUrl()}/for-businesses). CES reviews it and emails a private signup link with company pricing. The company then picks the plan and number of people, sets up an HR login, and pays with a company card.
+- How to sign up: fill out the short form on ${biz ? `the home page (${env.siteUrl()}/#get-pricing)` : `the For Businesses page (${env.siteUrl()}/for-businesses)`}. The company pricing appears on screen right after the form is sent. CES reviews the request and emails a private signup link. The company then picks the plan and number of people, sets up an HR login, and pays with a company card.
 - HR dashboard: upload one spreadsheet of names and emails; each person gets their own login and welcome email. Add or remove people anytime; the bill adjusts. A removed person keeps access to the end of that billing month.
-- Companies sign a company agreement at signup (including not going around CES to deal directly with its providers).
 
-## How buying works (individuals)
+${biz ? '' : `## How buying works (individuals)
 1. Pick a plan, or build your own on the homepage.
 2. Fill in your details, check the box confirming you understand the no-refund policy, and pay securely by card.
 3. Your member area unlocks right away with everything you bought, including activation codes and setup steps. You also get a welcome email and setup emails.
 - Register every service with the same email you used for your CES Essentials account. Providers match you by that email.
 - You must be 18 or older to buy.
 
-## Billing and policies
+`}## Billing and policies
 - Plans are subscriptions that renew automatically until canceled: monthly, or yearly for the yearly plan listed above (if one is listed). Sales tax is not added.
 - Yearly plans: If you cancel a yearly plan within the first 3 months of a paid year, you pay the regular monthly price for each month you used (a partial month counts as a full month), the rest of what you paid is refunded to your card, and your access ends when the last of those months ends. After the first 3 months of a paid year there are no refunds, and your access continues through the end of the year you paid for. Yearly members get a reminder email about 30 days before renewal. Switching between monthly and yearly is done by emailing us.
 - Cancel anytime from the member area (My Plan). No future charges; access lasts through the end of the month already paid for.

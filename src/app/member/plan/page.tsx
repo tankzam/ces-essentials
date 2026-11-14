@@ -1,3 +1,4 @@
+import { businessOnly } from '@/lib/sales';
 import Link from 'next/link';
 import { PlanManager } from '@/components/PlanManager';
 import { currentUser } from '@/lib/supabase/server';
@@ -12,6 +13,7 @@ import { earlyCancelQuote } from '@/lib/yearly';
 export const metadata = { title: 'My Plan — CES Essentials' };
 
 export default async function Page() {
+  const biz = await businessOnly();
   const user = (await currentUser())!;
   const [plan, catalog, products] = await Promise.all([currentPlan(user.id), publicCatalog(), allProducts()]);
 
@@ -21,7 +23,11 @@ export default async function Page() {
         <h1 className="text-[32px] font-extrabold tracking-tight">My Plan</h1>
         <div className="rounded-2xl border border-line bg-white p-8">
           <p className="mb-4 text-lg">You don’t have a plan right now.</p>
-          <Link href="/#plans" className="inline-flex min-h-12 items-center rounded-[10px] bg-amber px-6 font-bold text-navy">See plans</Link>
+          {biz ? (
+            <p className="text-[17px] text-muted">If your company provides CES Essentials, ask your HR contact to add you. Questions? <Link href="/contact" className="font-semibold underline">Contact us</Link>.</p>
+          ) : (
+            <Link href="/#plans" className="inline-flex min-h-12 items-center rounded-[10px] bg-amber px-6 font-bold text-navy">See plans</Link>
+          )}
         </div>
       </>
     );

@@ -213,3 +213,21 @@ export function withoutHealthcare(services: Record<string, BenefitService>): Rec
   for (const [id, s] of Object.entries(services)) if (id !== 'health') out[id] = deep(s);
   return out;
 }
+
+/** Public guide on the business-only site: "how to join" steps describe company plans, not individual purchase. */
+export function forBusiness(services: Record<string, BenefitService>): Record<string, BenefitService> {
+  const fix = (t: string) =>
+    t
+      .replace(/^Join with [^.]*\./, 'Your company adds you to CES Essentials.')
+      .replace(/^Add .+? à la carte\./, 'Your company adds you to CES Essentials.')
+      .replace(/^Essential(, All-in-One,)? or à la carte$/, 'In the Essential plan')
+      .replace(/^All-in-One or à la carte$/, 'All-in-One plan')
+      .replace(/^Free with any plan$/, 'Included in every plan');
+  const deep = <T,>(v: T): T => {
+    if (typeof v === 'string') return fix(v) as T;
+    if (Array.isArray(v)) return v.map(deep) as T;
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, deep(x)])) as T;
+    return v;
+  };
+  return Object.fromEntries(Object.entries(services).map(([id, s]) => [id, deep(s)]));
+}

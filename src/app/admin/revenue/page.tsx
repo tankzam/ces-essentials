@@ -5,6 +5,7 @@ import { quoteFor } from '@/lib/yearly-server';
 import { formatDate, money } from '@/lib/money';
 import { AdminAction } from '@/components/AdminAction';
 import { paymentProvider } from '@/lib/shopify-billing';
+import { businessOnly } from '@/lib/sales';
 
 export const metadata = { title: 'Orders & Revenue — CES Essentials Admin' };
 
@@ -16,6 +17,7 @@ export default async function Page() {
   const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
   const provider = await paymentProvider();
+  const bizOnly = await businessOnly();
   const [products, { data: subs }, { data: paid }] = await Promise.all([
     allProducts(),
     db
@@ -96,6 +98,16 @@ export default async function Page() {
         <p className="text-sm text-subtle">
           Virtual Healthcare and All-in-One are {provider === 'shopify' ? <strong className="text-ok">on sale (Shopify checkout)</strong> : <strong className="text-danger">hidden and not sold</strong>}. They are never sold through Stripe, and show on the website only while checkout goes through Shopify.
         </p>
+        <p className="text-sm text-subtle">
+          Who can buy on the website: <strong className="text-navy">{bizOnly ? 'Businesses only (company plans)' : 'Businesses and regular customers'}</strong>. Existing members keep their plans either way.
+        </p>
+        <div>
+          {bizOnly ? (
+            <AdminAction body={{ action: 'set_individual_sales', on: true }} confirm="Let regular customers buy plans on the website again?">Turn regular customers back on</AdminAction>
+          ) : (
+            <AdminAction body={{ action: 'set_individual_sales', on: false }} confirm="Switch the website to businesses only?">Switch to businesses only</AdminAction>
+          )}
+        </div>
         <div><AdminAction body={{ action: 'sync_product_names' }}>Set up and update products in Stripe and Shopify</AdminAction></div>
         <div><AdminAction body={{ action: 'healthcare_stripe_off' }} confirm="Archive the Virtual Healthcare, All-in-One, and All-in-One (Company) products and prices in Stripe?">Turn healthcare off in Stripe</AdminAction></div>
       </div>

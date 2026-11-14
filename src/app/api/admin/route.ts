@@ -31,6 +31,7 @@ const Body = z.discriminatedUnion('action', [
   z.object({ action: z.literal('refresh_shopify_plans') }),
   z.object({ action: z.literal('healthcare_stripe_off') }),
   z.object({ action: z.literal('sync_product_names') }),
+  z.object({ action: z.literal('set_individual_sales'), on: z.boolean() }),
   z.object({ action: z.literal('threshold'), value: z.number().int().min(0).max(100000) }),
   z.object({ action: z.literal('add_admin'), email: z.string().trim().toLowerCase().email(), fullName: z.string().trim().min(2).max(120) }),
   z.object({ action: z.literal('approve_request'), requestId: z.string().uuid() }),
@@ -109,6 +110,12 @@ export async function POST(req: Request) {
       await logActivity(me, 'turned off Virtual Healthcare and All-in-One in Stripe', undefined, { done, problems });
       if (problems.length) return fail(`Stripe said: ${problems.join(' | ')}${done.length ? `. Archived OK: ${done.join(', ')}` : ''}`, 409);
       return NextResponse.json({ ok: true, message: `Archived in Stripe (product and price): ${done.join(', ')}. Stripe can no longer charge for them.` });
+    }
+
+    case 'set_individual_sales': {
+      await db.from('settings').upsert({ key: 'individual_sales', value: b.on ? 'on' : 'off', updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      await logActivity(me, b.on ? 'turned on regular-customer sales' : 'switched the site to businesses only');
+      return NextResponse.json({ ok: true, message: b.on ? 'Regular customers can buy plans on the website again.' : 'The website now sells to businesses only.' });
     }
 
     case 'sync_product_names': {

@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { admin } from '@/lib/supabase/admin';
 import { getSetting } from '@/lib/settings';
 import { sendBusinessRequestAlert } from '@/lib/email';
+import { companyPlans } from '@/lib/company-pricing';
 
 export const runtime = 'nodejs';
 
@@ -44,5 +45,7 @@ export async function POST(req: Request) {
       console.error('business request alert failed', e);
     }
   }
-  return NextResponse.json({ ok: true });
+  // The form reveals company pricing as soon as it's sent; the signup link still comes after approval.
+  const pricing = await companyPlans().catch(() => null);
+  return NextResponse.json({ ok: true, pricing });
 }
