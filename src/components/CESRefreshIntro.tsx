@@ -98,7 +98,7 @@ export function CESRefreshIntro({
                 : `A family legal plan, tax prep, credit monitoring, and a VPN, starting at ${money(essential?.priceCents ?? 0)} a month.`}
           </p>
           <a className="ces-refresh-button" href={business ? '#get-pricing' : '#plans'}>
-            {business ? 'Get company pricing' : 'See plans'} <span aria-hidden="true">→</span>
+            {business ? 'Get More Information' : 'See plans'} <span aria-hidden="true">→</span>
           </a>
           <p className="ces-refresh-hero__note">
             {business ? 'One simple monthly bill. Add or remove people anytime.' : 'Cancel anytime. Your access lasts through the end of your billing month.'}

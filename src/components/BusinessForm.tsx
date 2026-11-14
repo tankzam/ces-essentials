@@ -94,8 +94,8 @@ export function BusinessForm({ plans = ['Essential', 'All-in-One'] }: { plans?: 
   return (
     <form onSubmit={submit} className="flex flex-col gap-5">
       <div className="flex flex-col gap-1.5">
-        <h2 className="text-[28px] font-extrabold tracking-tight">Get company pricing</h2>
-        <p className="text-muted">Tell us about your company. Your company pricing appears right away, and we&apos;ll email your private signup link.</p>
+        <h2 className="text-[28px] font-extrabold tracking-tight">Get more information</h2>
+        <p className="text-muted">Tell us about your company. You&apos;ll see your team&apos;s pricing details right away, and we&apos;ll email your private signup link.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <label className={label}>Company name<input name="company" required className={field} autoComplete="organization" /></label>
@@ -124,7 +124,7 @@ export function BusinessForm({ plans = ['Essential', 'All-in-One'] }: { plans?: 
       <p className="text-sm text-subtle">Company plans require at least 5 people.</p>
       {error && <p role="alert" className="rounded-lg bg-danger-soft px-4 py-3 font-semibold text-[#7A1F15]">{error}</p>}
       <button disabled={busy} className="min-h-14 rounded-[10px] bg-amber text-lg font-extrabold text-navy disabled:opacity-60">
-        {busy ? 'Sending…' : 'See company pricing'}
+        {busy ? 'Sending…' : 'Get More Information'}
       </button>
     </form>
   );

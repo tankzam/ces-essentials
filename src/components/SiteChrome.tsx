@@ -46,7 +46,7 @@ function MenuLinks({ stacked = false, accountHref, biz = false }: { stacked?: bo
         </Link>
       ))}
       <Link href={biz ? '/#get-pricing' : '/for-businesses'} className={`inline-flex min-h-11 items-center text-[15px] font-semibold text-amber no-underline ${stacked ? 'py-1' : ''}`}>
-        {biz ? 'Get pricing' : 'For Businesses'}
+        {biz ? 'Get more info' : 'For Businesses'}
       </Link>
       {accountHref ? (
         <>
@@ -99,7 +99,7 @@ export async function SiteFooter() {
     { href: '/refund-policy', label: 'Refund Policy' },
     { href: '/contact', label: 'Contact' },
     { href: '/login', label: 'Member Login' },
-    biz ? { href: '/#get-pricing', label: 'Get company pricing' } : { href: '/for-businesses', label: 'For Businesses' },
+    biz ? { href: '/#get-pricing', label: 'Get more information' } : { href: '/for-businesses', label: 'For Businesses' },
     { href: '/benefits-guide', label: 'Plan Guides' },
   ];
   return (

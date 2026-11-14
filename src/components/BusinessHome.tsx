@@ -8,7 +8,7 @@ import type { CompanyPlan } from '@/lib/company-pricing';
 // The homepage while the site sells to businesses only.
 
 const steps = [
-  { title: 'Tell us about your company', text: 'Fill out the short form below. Your company pricing appears right away.' },
+  { title: 'Tell us about your company', text: 'Fill out the short form below. You\'ll see your team\'s plan details right away.' },
   { title: 'Get your signup link', text: 'We review your request and email a private link. Pick your team size, set up your HR login, and pay with a company card.' },
   { title: 'Add your people', text: 'Upload one spreadsheet of names and emails. Everyone gets their own login and a welcome email.' },
 ];
